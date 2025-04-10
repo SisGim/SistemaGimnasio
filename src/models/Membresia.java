@@ -5,20 +5,30 @@ import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 
 public class Membresia {
+    private SimpleIntegerProperty id;
     private SimpleStringProperty tipo; // tipo de membresia
     private SimpleIntegerProperty duracion; // duración en dias específica para cada cliente
     private SimpleDoubleProperty precioBase; // precio base de la membresía
 
     // Constructor
-    public Membresia(String tipo, double precioBase) {
+    public Membresia(int id, String tipo, double precioBase) {
+        this.id = new SimpleIntegerProperty(id);
         this.tipo = new SimpleStringProperty(tipo);
         this.precioBase = new SimpleDoubleProperty(precioBase);
     }
 
     // Constructor para la membresia de un cliente
-    public Membresia(String tipo, double precioBase, int duracion) {
-        this(tipo, precioBase);
+    public Membresia(int id, String tipo, double precioBase, int duracion) {
+        this(id, tipo, precioBase);
         this.duracion = new SimpleIntegerProperty(duracion);
+    }
+    
+        public int getId() {
+        return id.get();
+    }
+
+    public void setId(int id) {
+        this.id.set(id);
     }
 
     public double getPrecioBase() {
@@ -47,6 +57,10 @@ public class Membresia {
   
     public double calcularPrecio() {
         return precioBase.get() * duracion.get(); // calcula el precio segun la duración
+    }
+
+    public SimpleIntegerProperty idProperty() {
+        return id;
     }
 
     public SimpleDoubleProperty precioBaseProperty() {
