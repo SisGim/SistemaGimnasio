@@ -10,13 +10,15 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import models.Cliente;
 
+import java.util.Comparator;
+import java.util.regex.Pattern;
+
 public class ClienteUI {
 
     private TableView<Cliente> tableView = new TableView<>();
     private ObservableList<Cliente> clientesList = FXCollections.observableArrayList();
-    private String rolUsuario; // 📌 Almacena el rol del usuario actual
+    private String rolUsuario;
 
-    // Constructor que recibe el rol del usuario autenticado
     public ClienteUI(String rolUsuario) {
         this.rolUsuario = rolUsuario;
     }
@@ -24,40 +26,43 @@ public class ClienteUI {
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Gestión de Clientes");
 
-        configurarTabla(); // 📌 Agrega columnas a la tabla
+        configurarTabla();
 
-        // Botones
         Button btnAgregar = new Button("Agregar Cliente");
         Button btnModificar = new Button("Modificar Cliente");
         Button btnEliminar = new Button("Eliminar Cliente");
 
-        // 📌 Deshabilitar el botón eliminar si el usuario NO es administrador
         if (!"Administrador".equals(rolUsuario)) {
             btnEliminar.setDisable(true);
         }
 
-        // Cargar clientes en la tabla
         clientesList.addAll(ClienteDAO.obtenerClientes());
+        ordenarClientes();
         tableView.setItems(clientesList);
 
-        // Asignar eventos a los botones
-        btnAgregar.setOnAction(e -> agregarCliente());
-        btnModificar.setOnAction(e -> modificarCliente());
+        btnAgregar.setOnAction(e -> mostrarFormularioCliente(null));
+        btnModificar.setOnAction(e -> {
+            Cliente seleccionado = tableView.getSelectionModel().getSelectedItem();
+            if (seleccionado != null) {
+                mostrarFormularioCliente(seleccionado);
+            } else {
+                mostrarError("Seleccione un cliente para modificar.");
+            }
+        });
         btnEliminar.setOnAction(e -> eliminarCliente());
 
-        // Layout principal
         VBox layout = new VBox(10, tableView, btnAgregar, btnModificar, btnEliminar);
         layout.setAlignment(Pos.CENTER);
         layout.setStyle("-fx-padding: 20px;");
 
-        // Configuración de la escena
         Scene scene = new Scene(layout, 600, 400);
         primaryStage.setScene(scene);
         primaryStage.show();
     }
 
-    // 📌 Configurar columnas de la tabla
     private void configurarTabla() {
+        tableView.getColumns().clear();
+
         TableColumn<Cliente, Number> colId = new TableColumn<>("ID");
         colId.setCellValueFactory(cellData -> cellData.getValue().idProperty());
 
@@ -76,84 +81,61 @@ public class ClienteUI {
         tableView.getColumns().addAll(colId, colNombre, colTelefono, colEmail, colMembresia);
     }
 
-    // 📌 Método para agregar un cliente
-    private void agregarCliente() {
+    private void mostrarFormularioCliente(Cliente clienteExistente) {
         Stage ventana = new Stage();
-        ventana.setTitle("Agregar Cliente");
+        boolean esNuevo = clienteExistente == null;
+
+        ventana.setTitle(esNuevo ? "Agregar Cliente" : "Modificar Cliente");
 
         Label lblNombre = new Label("Nombre:");
-        TextField txtNombre = new TextField();
-        Label lblTelefono = new Label("Teléfono:");
-        TextField txtTelefono = new TextField();
-        Label lblEmail = new Label("Email:");
-        TextField txtEmail = new TextField();
-        Label lblMembresia = new Label("Membresía:");
+        TextField txtNombre = new TextField(esNuevo ? "" : clienteExistente.getNombre());
 
-        // 📌 Lista desplegable para seleccionar membresía
+        Label lblTelefono = new Label("Teléfono:");
+        TextField txtTelefono = new TextField(esNuevo ? "" : clienteExistente.getTelefono());
+
+        Label lblEmail = new Label("Email:");
+        TextField txtEmail = new TextField(esNuevo ? "" : clienteExistente.getEmail());
+
+        Label lblMembresia = new Label("Membresía:");
         ComboBox<String> cmbMembresia = new ComboBox<>();
         cmbMembresia.getItems().addAll("Básica", "Premium", "VIP", "Familiar");
-        cmbMembresia.setValue("Básica");
+        cmbMembresia.setValue(esNuevo ? "Básica" : clienteExistente.getMembresia());
 
-        Button btnGuardar = new Button("Guardar");
+        Button btnGuardar = new Button(esNuevo ? "Guardar" : "Guardar Cambios");
         btnGuardar.setOnAction(e -> {
             String nombre = txtNombre.getText().trim();
             String telefono = txtTelefono.getText().trim();
             String email = txtEmail.getText().trim();
             String membresia = cmbMembresia.getValue();
 
-            if (!nombre.isEmpty() && !telefono.isEmpty() && !email.isEmpty() && membresia != null) {
+            if (nombre.isEmpty() || telefono.isEmpty() || email.isEmpty() || membresia == null) {
+                mostrarError("Por favor, llena todos los campos.");
+                return;
+            }
+
+            if (!validarTelefono(telefono)) {
+                mostrarError("El teléfono solo debe contener números.");
+                return;
+            }
+
+            if (!validarEmail(email)) {
+                mostrarError("Email no válido.");
+                return;
+            }
+
+            if (esNuevo) {
                 Cliente nuevoCliente = new Cliente(0, nombre, telefono, email, membresia);
                 ClienteDAO.agregarCliente(nuevoCliente);
-                actualizarTabla();
-                ventana.close();
+                mostrarInfo("Cliente agregado exitosamente.");
             } else {
-                mostrarError("Por favor, llena todos los campos.");
+                clienteExistente.setNombre(nombre);
+                clienteExistente.setTelefono(telefono);
+                clienteExistente.setEmail(email);
+                clienteExistente.setMembresia(membresia);
+                ClienteDAO.actualizarCliente(clienteExistente);
+                mostrarInfo("Cliente modificado exitosamente.");
             }
-        });
 
-        VBox layout = new VBox(10, lblNombre, txtNombre, lblTelefono, txtTelefono, lblEmail, txtEmail, lblMembresia, cmbMembresia, btnGuardar);
-        layout.setAlignment(Pos.CENTER);
-        layout.setStyle("-fx-padding: 20px;");
-
-        Scene scene = new Scene(layout, 300, 350);
-        ventana.setScene(scene);
-        ventana.show();
-    }
-
-    // 📌 Método para modificar un cliente
-    private void modificarCliente() {
-        Cliente clienteSeleccionado = tableView.getSelectionModel().getSelectedItem();
-
-        if (clienteSeleccionado == null) {
-            mostrarError("Seleccione un cliente para modificar.");
-            return;
-        }
-
-        Stage ventana = new Stage();
-        ventana.setTitle("Modificar Cliente");
-
-        Label lblNombre = new Label("Nombre:");
-        TextField txtNombre = new TextField(clienteSeleccionado.getNombre());
-
-        Label lblTelefono = new Label("Teléfono:");
-        TextField txtTelefono = new TextField(clienteSeleccionado.getTelefono());
-
-        Label lblEmail = new Label("Email:");
-        TextField txtEmail = new TextField(clienteSeleccionado.getEmail());
-
-        Label lblMembresia = new Label("Membresía:");
-        ComboBox<String> cmbMembresia = new ComboBox<>();
-        cmbMembresia.getItems().addAll("Básica", "Premium", "VIP", "Familiar");
-        cmbMembresia.setValue(clienteSeleccionado.getMembresia());
-
-        Button btnGuardar = new Button("Guardar Cambios");
-        btnGuardar.setOnAction(e -> {
-            clienteSeleccionado.setNombre(txtNombre.getText().trim());
-            clienteSeleccionado.setTelefono(txtTelefono.getText().trim());
-            clienteSeleccionado.setEmail(txtEmail.getText().trim());
-            clienteSeleccionado.setMembresia(cmbMembresia.getValue());
-
-            ClienteDAO.actualizarCliente(clienteSeleccionado);
             actualizarTabla();
             ventana.close();
         });
@@ -167,7 +149,6 @@ public class ClienteUI {
         ventana.show();
     }
 
-    // 📌 Método para eliminar un cliente (solo disponible para Administradores)
     private void eliminarCliente() {
         Cliente clienteSeleccionado = tableView.getSelectionModel().getSelectedItem();
 
@@ -176,19 +157,47 @@ public class ClienteUI {
             return;
         }
 
-        ClienteDAO.eliminarCliente(clienteSeleccionado.getId(), rolUsuario);
-        actualizarTabla();
+        Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmacion.setTitle("Confirmar eliminación");
+        confirmacion.setHeaderText(null);
+        confirmacion.setContentText("¿Estás seguro de que deseas eliminar este cliente?");
+        confirmacion.showAndWait().ifPresent(respuesta -> {
+            if (respuesta == ButtonType.OK) {
+                ClienteDAO.eliminarCliente(clienteSeleccionado.getId(), rolUsuario);
+                actualizarTabla();
+                mostrarInfo("Cliente eliminado correctamente.");
+            }
+        });
     }
 
-    // 📌 Actualizar tabla después de cambios
     private void actualizarTabla() {
         clientesList.setAll(ClienteDAO.obtenerClientes());
+        ordenarClientes();
     }
 
-    // 📌 Método para mostrar errores
+    private void ordenarClientes() {
+        FXCollections.sort(clientesList, Comparator.comparing(Cliente::getNombre));
+    }
+
+    private boolean validarEmail(String email) {
+        return Pattern.matches("^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$", email);
+    }
+
+    private boolean validarTelefono(String telefono) {
+        return Pattern.matches("\\d+", telefono);
+    }
+
     private void mostrarError(String mensaje) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle("Error");
+        alert.setHeaderText(null);
+        alert.setContentText(mensaje);
+        alert.showAndWait();
+    }
+
+    private void mostrarInfo(String mensaje) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Información");
         alert.setHeaderText(null);
         alert.setContentText(mensaje);
         alert.showAndWait();
