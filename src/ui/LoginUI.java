@@ -19,10 +19,10 @@ public class LoginUI extends Application {
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Titan Forge - Login");
 
-        // Logo más grande
-        ImageView logo = new ImageView(new Image("file:resources/logo.png"));
-        logo.setFitWidth(180);
-        logo.setPreserveRatio(true);
+        // Logo (para futuro commit)
+       // ImageView logo = new ImageView(new Image("file:resources/logo.png"));
+       // logo.setFitWidth(180);
+       // logo.setPreserveRatio(true);
 
         Label title = new Label("LOGIN");
         title.setFont(new Font("Arial Black", 42));
@@ -40,11 +40,12 @@ public class LoginUI extends Application {
         Label lblMensajeError = new Label();
         lblMensajeError.setTextFill(Color.RED);
 
+        // Boton de forgot password (para futuro commit)
         // Hyperlink forgotPassword = new Hyperlink("Forgot password?");
         // forgotPassword.setTextFill(Color.LIGHTGRAY);
         // forgotPassword.setFont(new Font(14));
 
-        // Botón de login más grande
+        // Botón de login
         Button btnIniciarSesion = new Button("Login");
         btnIniciarSesion.setPrefWidth(300);
         btnIniciarSesion.setPrefHeight(45);
