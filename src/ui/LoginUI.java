@@ -20,7 +20,7 @@ public class LoginUI extends Application {
         primaryStage.setTitle("Titan Forge - Login");
 
         // Logo más grande
-        ImageView logo = new ImageView(new Image("file:resources/logo.png")); // Asegúrate de que esta ruta exista
+        ImageView logo = new ImageView(new Image("file:resources/logo.png"));
         logo.setFitWidth(180);
         logo.setPreserveRatio(true);
 
@@ -88,7 +88,7 @@ public class LoginUI extends Application {
         HBox socialIcons = new HBox(30, twitter, instagram, youtube);
         socialIcons.setAlignment(Pos.CENTER);
 
-        // Contenedor principal del login (centrado y grande)
+        // Contenedor 
         VBox loginBox = new VBox(25,
                 logo, title,
                 txtUsuario, txtPassword,
@@ -101,7 +101,7 @@ public class LoginUI extends Application {
         loginBox.setPadding(new Insets(60));
         loginBox.setStyle("-fx-background-color: rgba(0,0,0,0.8); -fx-background-radius: 25px;");
 
-        // Fondo negro y centrado
+        // Fondo negro
         StackPane root = new StackPane(loginBox);
         root.setStyle("-fx-background-color: black;");
 
