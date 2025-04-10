@@ -40,6 +40,12 @@ public class Database {
                                  "membresia VARCHAR(50) NOT NULL)";
             stmt.execute(sqlClientes);
 
+             String sqlMembresias = "CREATE TABLE IF NOT EXISTS catalogo_membresias (" +
+                               "id INT AUTO_INCREMENT PRIMARY KEY, " +
+                               "tipo VARCHAR(50) NOT NULL UNIQUE, " +
+                               "precio_base DECIMAL(10, 2) NOT NULL)";
+            stmt.execute(sqlMembresias);
+
             System.out.println("Base de datos conectada y funcionando en modo embebido.");
         } catch (SQLException e) {
             e.printStackTrace();
