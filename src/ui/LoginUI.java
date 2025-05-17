@@ -2,16 +2,18 @@ package ui;
 
 import database.UsuarioDAO;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
+import javafx.util.Pair;
+
+import java.util.Optional;
 
 public class LoginUI extends Application {
 
@@ -19,16 +21,10 @@ public class LoginUI extends Application {
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Titan Forge - Login");
 
-        // Logo (para futuro commit)
-       // ImageView logo = new ImageView(new Image("file:resources/logo.png"));
-       // logo.setFitWidth(180);
-       // logo.setPreserveRatio(true);
-
         Label title = new Label("LOGIN");
         title.setFont(new Font("Arial Black", 42));
         title.setTextFill(Color.WHITE);
 
-        // Campos de entrada
         TextField txtUsuario = new TextField();
         txtUsuario.setPromptText("Username");
         styleInput(txtUsuario);
@@ -40,12 +36,6 @@ public class LoginUI extends Application {
         Label lblMensajeError = new Label();
         lblMensajeError.setTextFill(Color.RED);
 
-        // Boton de forgot password (para futuro commit)
-        // Hyperlink forgotPassword = new Hyperlink("Forgot password?");
-        // forgotPassword.setTextFill(Color.LIGHTGRAY);
-        // forgotPassword.setFont(new Font(14));
-
-        // Botón de login
         Button btnIniciarSesion = new Button("Login");
         btnIniciarSesion.setPrefWidth(300);
         btnIniciarSesion.setPrefHeight(45);
@@ -70,14 +60,79 @@ public class LoginUI extends Application {
 
             String rol = UsuarioDAO.verificarCredenciales(username, password);
             if (rol != null) {
-                new ClienteUI(rol).start(new Stage());
+                Stage nuevoStage = new Stage();
+                if (rol.equalsIgnoreCase("Administrador")) {
+                    new AdministradorUI().start(nuevoStage);
+                } else {
+                    new ClienteUI(rol).start(nuevoStage);
+                }
                 primaryStage.close();
             } else {
                 lblMensajeError.setText("Credenciales incorrectas o usuario bloqueado.");
             }
         });
 
-        // Redes sociales (emojis como íconos)
+        Button btnRegistrarse = new Button("Registrarse");
+        btnRegistrarse.setPrefWidth(300);
+        btnRegistrarse.setPrefHeight(45);
+        btnRegistrarse.setStyle(
+                "-fx-background-color: transparent;" +
+                "-fx-border-color: #1DB954;" +
+                "-fx-border-width: 2;" +
+                "-fx-text-fill: white;" +
+                "-fx-font-size: 18px;" +
+                "-fx-background-radius: 12;" +
+                "-fx-border-radius: 12;"
+        );
+
+        btnRegistrarse.setOnAction(e -> {
+            Dialog<Pair<String, String>> dialog = new Dialog<>();
+            dialog.setTitle("Registro de Usuario");
+            dialog.setHeaderText("Ingrese los datos del nuevo usuario");
+
+            ButtonType registerButtonType = new ButtonType("Registrar", ButtonBar.ButtonData.OK_DONE);
+            dialog.getDialogPane().getButtonTypes().addAll(registerButtonType, ButtonType.CANCEL);
+
+            GridPane grid = new GridPane();
+            grid.setHgap(10);
+            grid.setVgap(10);
+            grid.setPadding(new Insets(20, 150, 10, 10));
+
+            TextField usuario = new TextField();
+            usuario.setPromptText("Usuario");
+
+            PasswordField password = new PasswordField();
+            password.setPromptText("Contraseña");
+
+            grid.add(new Label("Usuario:"), 0, 0);
+            grid.add(usuario, 1, 0);
+            grid.add(new Label("Contraseña:"), 0, 1);
+            grid.add(password, 1, 1);
+
+            dialog.getDialogPane().setContent(grid);
+            Platform.runLater(usuario::requestFocus);
+
+            dialog.setResultConverter(dialogButton -> {
+                if (dialogButton == registerButtonType) {
+                    return new Pair<>(usuario.getText(), password.getText());
+                }
+                return null;
+            });
+
+            Optional<Pair<String, String>> result = dialog.showAndWait();
+
+            result.ifPresent(credentials -> {
+                String user = credentials.getKey();
+                String pass = credentials.getValue();
+                boolean exito = UsuarioDAO.registrarUsuario(user, pass);
+                Alert alert = new Alert(exito ? Alert.AlertType.INFORMATION : Alert.AlertType.ERROR);
+                alert.setTitle(exito ? "Registro exitoso" : "Error");
+                alert.setHeaderText(null);
+                alert.setContentText(exito ? "Usuario registrado correctamente." : "El usuario ya existe o no se pudo registrar.");
+                alert.showAndWait();
+            });
+        });
+
         Label twitter = new Label("🐦");
         Label instagram = new Label("📸");
         Label youtube = new Label("▶️");
@@ -89,12 +144,12 @@ public class LoginUI extends Application {
         HBox socialIcons = new HBox(30, twitter, instagram, youtube);
         socialIcons.setAlignment(Pos.CENTER);
 
-        // Contenedor 
         VBox loginBox = new VBox(25,
-                logo, title,
-                txtUsuario, txtPassword,
-                // forgotPassword,
+                title,
+                txtUsuario,
+                txtPassword,
                 btnIniciarSesion,
+                btnRegistrarse,
                 lblMensajeError,
                 socialIcons
         );
@@ -102,7 +157,6 @@ public class LoginUI extends Application {
         loginBox.setPadding(new Insets(60));
         loginBox.setStyle("-fx-background-color: rgba(0,0,0,0.8); -fx-background-radius: 25px;");
 
-        // Fondo negro
         StackPane root = new StackPane(loginBox);
         root.setStyle("-fx-background-color: black;");
 
