@@ -15,6 +15,7 @@ import javafx.util.Pair;
 
 import java.util.Optional;
 import java.util.regex.Pattern;
+import javafx.scene.Node;
 
 public class LoginUI extends Application {
 
@@ -69,7 +70,6 @@ public class LoginUI extends Application {
         btnRegistrarse.setPrefWidth(300);
         btnRegistrarse.setPrefHeight(45);
         btnRegistrarse.setStyle(buttonStyle());
-
         btnRegistrarse.setOnAction(e -> mostrarVentanaRegistro());
 
         Label twitter = new Label("🐦");
@@ -107,10 +107,18 @@ public class LoginUI extends Application {
     private void mostrarVentanaRegistro() {
         Dialog<Pair<String, String>> dialog = new Dialog<>();
         dialog.setTitle("Registro de Usuario");
-        dialog.setHeaderText("Ingrese su correo y contraseña");
+
+        DialogPane dialogPane = dialog.getDialogPane();
+        dialogPane.setStyle(
+                "-fx-background-color: rgba(0,0,0,0.95); " +
+                "-fx-border-color: #1DB954; " +
+                "-fx-border-width: 2px; " +
+                "-fx-background-radius: 15; " +
+                "-fx-border-radius: 15;"
+        );
 
         ButtonType registerButtonType = new ButtonType("Registrar", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(registerButtonType, ButtonType.CANCEL);
+        dialogPane.getButtonTypes().addAll(registerButtonType, ButtonType.CANCEL);
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
@@ -119,35 +127,48 @@ public class LoginUI extends Application {
 
         TextField email = new TextField();
         email.setPromptText("Correo electrónico");
+        styleInput(email);
 
         PasswordField password = new PasswordField();
         password.setPromptText("Contraseña");
+        styleInput(password);
 
-        grid.add(new Label("Correo:"), 0, 0);
+        Label lblCorreo = new Label("Correo:");
+        Label lblContrasena = new Label("Contraseña:");
+        lblCorreo.setTextFill(Color.WHITE);
+        lblContrasena.setTextFill(Color.WHITE);
+        lblCorreo.setFont(new Font(14));
+        lblContrasena.setFont(new Font(14));
+
+        grid.add(lblCorreo, 0, 0);
         grid.add(email, 1, 0);
-        grid.add(new Label("Contraseña:"), 0, 1);
+        grid.add(lblContrasena, 0, 1);
         grid.add(password, 1, 1);
 
-        dialog.getDialogPane().setContent(grid);
+        dialogPane.setContent(grid);
         Platform.runLater(email::requestFocus);
 
-        // 🔁 Manejador del botón personalizado (para mantener abierta la ventana si es inválido)
-        final Button btnRegistrar = (Button) dialog.getDialogPane().lookupButton(registerButtonType);
+        Button btnRegistrar = (Button) dialogPane.lookupButton(registerButtonType);
+        Button btnCancelar = (Button) dialogPane.lookupButton(ButtonType.CANCEL);
+
+        btnRegistrar.setStyle(buttonStyle());
+        btnCancelar.setStyle(buttonStyle());
+
         btnRegistrar.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
             String correo = email.getText().trim();
             String pass = password.getText().trim();
 
             if (correo.isEmpty() || pass.isEmpty()) {
                 mostrarAlerta(Alert.AlertType.ERROR, "Campos incompletos", "Debes ingresar correo y contraseña.");
-                event.consume(); // No cierra la ventana
+                event.consume();
                 return;
             }
 
             if (!validarPassword(pass)) {
                 mostrarAlerta(Alert.AlertType.ERROR, "Contraseña insegura", """
-                        La contraseña debe tener al menos 12 caracteres, 
+                        La contraseña debe tener al menos 12 caracteres,
                         incluir una mayúscula, una minúscula, un número y un símbolo.""");
-                event.consume(); // No cierra la ventana
+                event.consume();
                 return;
             }
 
@@ -158,7 +179,7 @@ public class LoginUI extends Application {
                     : "El correo ya está registrado o hubo un error.";
             mostrarAlerta(tipo, exito ? "Éxito" : "Error", mensaje);
 
-            if (!exito) event.consume(); // No cerrar si falla el registro
+            if (!exito) event.consume();
         });
 
         dialog.showAndWait();
