@@ -1,5 +1,7 @@
 package database;
 
+import util.CorreoUtil;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -9,26 +11,28 @@ import java.util.List;
 
 public class UsuarioDAO {
 
-    public static boolean registrarUsuario(String username, String password) {
+    public static boolean registrarUsuario(String email, String password) {
         try (Connection conn = Database.connect()) {
-            // Verificar si el usuario ya existe
+            // Verificar si el email ya existe
             PreparedStatement checkStmt = conn.prepareStatement(
-                    "SELECT COUNT(*) FROM usuarios WHERE USERNAME = ?"
+                "SELECT COUNT(*) FROM usuarios WHERE email = ?"
             );
-            checkStmt.setString(1, username);
+            checkStmt.setString(1, email);
             ResultSet rs = checkStmt.executeQuery();
             if (rs.next() && rs.getInt(1) > 0) {
-                return false; // Usuario ya existe
+                return false; // Ya registrado
             }
 
-            // Insertar nuevo usuario
-            System.out.println("[DEBUG] Contraseña registrada: " + password); // TEMPORAL
+            // Insertar nuevo usuario con rol 'cliente'
             PreparedStatement stmt = conn.prepareStatement(
-                    "INSERT INTO usuarios (USERNAME, PASSWORD, ROL) VALUES (?, ?, 'cliente')"
+                "INSERT INTO usuarios (email, password, rol) VALUES (?, ?, 'cliente')"
             );
-            stmt.setString(1, username);
+            stmt.setString(1, email);
             stmt.setString(2, password);
             stmt.executeUpdate();
+
+            // Enviar correo de confirmación
+            CorreoUtil.enviarConfirmacion(email);
 
             return true;
         } catch (SQLException e) {
@@ -37,15 +41,14 @@ public class UsuarioDAO {
         }
     }
 
-    public static boolean actualizarRol(String username, String nuevoRol) {
+    public static boolean actualizarRol(String email, String nuevoRol) {
         try (Connection conn = Database.connect()) {
             PreparedStatement stmt = conn.prepareStatement(
-                    "UPDATE usuarios SET ROL = ? WHERE USERNAME = ?"
+                "UPDATE usuarios SET rol = ? WHERE email = ?"
             );
             stmt.setString(1, nuevoRol);
-            stmt.setString(2, username);
-            int filas = stmt.executeUpdate();
-            return filas > 0;
+            stmt.setString(2, email);
+            return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
@@ -55,10 +58,10 @@ public class UsuarioDAO {
     public static List<String> obtenerUsuarios() {
         List<String> usuarios = new ArrayList<>();
         try (Connection conn = Database.connect()) {
-            PreparedStatement stmt = conn.prepareStatement("SELECT USERNAME FROM usuarios WHERE ROL != 'Administrador'");
+            PreparedStatement stmt = conn.prepareStatement("SELECT email FROM usuarios");
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
-                usuarios.add(rs.getString("USERNAME"));
+                usuarios.add(rs.getString("email"));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -66,14 +69,13 @@ public class UsuarioDAO {
         return usuarios;
     }
 
-    // Obtener rol actual de un usuario
-    public static String obtenerRol(String username) {
+    public static String obtenerRol(String email) {
         try (Connection conn = Database.connect()) {
-            PreparedStatement stmt = conn.prepareStatement("SELECT ROL FROM usuarios WHERE USERNAME = ?");
-            stmt.setString(1, username);
+            PreparedStatement stmt = conn.prepareStatement("SELECT rol FROM usuarios WHERE email = ?");
+            stmt.setString(1, email);
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
-                return rs.getString("ROL");
+                return rs.getString("rol");
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -81,18 +83,19 @@ public class UsuarioDAO {
         return null;
     }
 
-    public static String verificarCredenciales(String username, String password) {
-        String sql = "SELECT ROL FROM usuarios WHERE USERNAME = ? AND PASSWORD = ?";
+    public static String verificarCredenciales(String email, String password) {
+        String sql = "SELECT rol FROM usuarios WHERE email = ? AND password = ?";
 
-        try (Connection conn = Database.connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conn = Database.connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, username.trim());
+            pstmt.setString(1, email.trim());
             pstmt.setString(2, password.trim());
 
             ResultSet rs = pstmt.executeQuery();
 
             if (rs.next()) {
-                return rs.getString("ROL");
+                return rs.getString("rol");
             }
 
         } catch (SQLException e) {

@@ -14,6 +14,7 @@ import javafx.stage.Stage;
 import javafx.util.Pair;
 
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 public class LoginUI extends Application {
 
@@ -25,12 +26,12 @@ public class LoginUI extends Application {
         title.setFont(new Font("Arial Black", 42));
         title.setTextFill(Color.WHITE);
 
-        TextField txtUsuario = new TextField();
-        txtUsuario.setPromptText("Username");
-        styleInput(txtUsuario);
+        TextField txtEmail = new TextField();
+        txtEmail.setPromptText("Correo electrónico");
+        styleInput(txtEmail);
 
         PasswordField txtPassword = new PasswordField();
-        txtPassword.setPromptText("Password");
+        txtPassword.setPromptText("Contraseña");
         styleInput(txtPassword);
 
         Label lblMensajeError = new Label();
@@ -39,26 +40,18 @@ public class LoginUI extends Application {
         Button btnIniciarSesion = new Button("Login");
         btnIniciarSesion.setPrefWidth(300);
         btnIniciarSesion.setPrefHeight(45);
-        btnIniciarSesion.setStyle(
-                "-fx-background-color: transparent;" +
-                "-fx-border-color: #1DB954;" +
-                "-fx-border-width: 2;" +
-                "-fx-text-fill: white;" +
-                "-fx-font-size: 18px;" +
-                "-fx-background-radius: 12;" +
-                "-fx-border-radius: 12;"
-        );
+        btnIniciarSesion.setStyle(buttonStyle());
 
         btnIniciarSesion.setOnAction(e -> {
-            String username = txtUsuario.getText().trim();
+            String email = txtEmail.getText().trim();
             String password = txtPassword.getText().trim();
 
-            if (username.isEmpty() || password.isEmpty()) {
-                lblMensajeError.setText("Ingrese usuario y contraseña.");
+            if (email.isEmpty() || password.isEmpty()) {
+                lblMensajeError.setText("Ingrese correo y contraseña.");
                 return;
             }
 
-            String rol = UsuarioDAO.verificarCredenciales(username, password);
+            String rol = UsuarioDAO.verificarCredenciales(email, password);
             if (rol != null) {
                 Stage nuevoStage = new Stage();
                 if (rol.equalsIgnoreCase("Administrador")) {
@@ -68,70 +61,16 @@ public class LoginUI extends Application {
                 }
                 primaryStage.close();
             } else {
-                lblMensajeError.setText("Credenciales incorrectas o usuario bloqueado.");
+                lblMensajeError.setText("Credenciales incorrectas o usuario no registrado.");
             }
         });
 
         Button btnRegistrarse = new Button("Registrarse");
         btnRegistrarse.setPrefWidth(300);
         btnRegistrarse.setPrefHeight(45);
-        btnRegistrarse.setStyle(
-                "-fx-background-color: transparent;" +
-                "-fx-border-color: #1DB954;" +
-                "-fx-border-width: 2;" +
-                "-fx-text-fill: white;" +
-                "-fx-font-size: 18px;" +
-                "-fx-background-radius: 12;" +
-                "-fx-border-radius: 12;"
-        );
+        btnRegistrarse.setStyle(buttonStyle());
 
-        btnRegistrarse.setOnAction(e -> {
-            Dialog<Pair<String, String>> dialog = new Dialog<>();
-            dialog.setTitle("Registro de Usuario");
-            dialog.setHeaderText("Ingrese los datos del nuevo usuario");
-
-            ButtonType registerButtonType = new ButtonType("Registrar", ButtonBar.ButtonData.OK_DONE);
-            dialog.getDialogPane().getButtonTypes().addAll(registerButtonType, ButtonType.CANCEL);
-
-            GridPane grid = new GridPane();
-            grid.setHgap(10);
-            grid.setVgap(10);
-            grid.setPadding(new Insets(20, 150, 10, 10));
-
-            TextField usuario = new TextField();
-            usuario.setPromptText("Usuario");
-
-            PasswordField password = new PasswordField();
-            password.setPromptText("Contraseña");
-
-            grid.add(new Label("Usuario:"), 0, 0);
-            grid.add(usuario, 1, 0);
-            grid.add(new Label("Contraseña:"), 0, 1);
-            grid.add(password, 1, 1);
-
-            dialog.getDialogPane().setContent(grid);
-            Platform.runLater(usuario::requestFocus);
-
-            dialog.setResultConverter(dialogButton -> {
-                if (dialogButton == registerButtonType) {
-                    return new Pair<>(usuario.getText(), password.getText());
-                }
-                return null;
-            });
-
-            Optional<Pair<String, String>> result = dialog.showAndWait();
-
-            result.ifPresent(credentials -> {
-                String user = credentials.getKey();
-                String pass = credentials.getValue();
-                boolean exito = UsuarioDAO.registrarUsuario(user, pass);
-                Alert alert = new Alert(exito ? Alert.AlertType.INFORMATION : Alert.AlertType.ERROR);
-                alert.setTitle(exito ? "Registro exitoso" : "Error");
-                alert.setHeaderText(null);
-                alert.setContentText(exito ? "Usuario registrado correctamente." : "El usuario ya existe o no se pudo registrar.");
-                alert.showAndWait();
-            });
-        });
+        btnRegistrarse.setOnAction(e -> mostrarVentanaRegistro());
 
         Label twitter = new Label("🐦");
         Label instagram = new Label("📸");
@@ -146,7 +85,7 @@ public class LoginUI extends Application {
 
         VBox loginBox = new VBox(25,
                 title,
-                txtUsuario,
+                txtEmail,
                 txtPassword,
                 btnIniciarSesion,
                 btnRegistrarse,
@@ -165,6 +104,82 @@ public class LoginUI extends Application {
         primaryStage.show();
     }
 
+    private void mostrarVentanaRegistro() {
+        Dialog<Pair<String, String>> dialog = new Dialog<>();
+        dialog.setTitle("Registro de Usuario");
+        dialog.setHeaderText("Ingrese su correo y contraseña");
+
+        ButtonType registerButtonType = new ButtonType("Registrar", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(registerButtonType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField email = new TextField();
+        email.setPromptText("Correo electrónico");
+
+        PasswordField password = new PasswordField();
+        password.setPromptText("Contraseña");
+
+        grid.add(new Label("Correo:"), 0, 0);
+        grid.add(email, 1, 0);
+        grid.add(new Label("Contraseña:"), 0, 1);
+        grid.add(password, 1, 1);
+
+        dialog.getDialogPane().setContent(grid);
+        Platform.runLater(email::requestFocus);
+
+        // 🔁 Manejador del botón personalizado (para mantener abierta la ventana si es inválido)
+        final Button btnRegistrar = (Button) dialog.getDialogPane().lookupButton(registerButtonType);
+        btnRegistrar.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
+            String correo = email.getText().trim();
+            String pass = password.getText().trim();
+
+            if (correo.isEmpty() || pass.isEmpty()) {
+                mostrarAlerta(Alert.AlertType.ERROR, "Campos incompletos", "Debes ingresar correo y contraseña.");
+                event.consume(); // No cierra la ventana
+                return;
+            }
+
+            if (!validarPassword(pass)) {
+                mostrarAlerta(Alert.AlertType.ERROR, "Contraseña insegura", """
+                        La contraseña debe tener al menos 12 caracteres, 
+                        incluir una mayúscula, una minúscula, un número y un símbolo.""");
+                event.consume(); // No cierra la ventana
+                return;
+            }
+
+            boolean exito = UsuarioDAO.registrarUsuario(correo, pass);
+            Alert.AlertType tipo = exito ? Alert.AlertType.INFORMATION : Alert.AlertType.ERROR;
+            String mensaje = exito
+                    ? "Registro exitoso. Se ha enviado un correo de confirmación."
+                    : "El correo ya está registrado o hubo un error.";
+            mostrarAlerta(tipo, exito ? "Éxito" : "Error", mensaje);
+
+            if (!exito) event.consume(); // No cerrar si falla el registro
+        });
+
+        dialog.showAndWait();
+    }
+
+    private boolean validarPassword(String password) {
+        return password.length() >= 12 &&
+                Pattern.compile("[A-Z]").matcher(password).find() &&
+                Pattern.compile("[a-z]").matcher(password).find() &&
+                Pattern.compile("\\d").matcher(password).find() &&
+                Pattern.compile("[^a-zA-Z0-9]").matcher(password).find();
+    }
+
+    private void mostrarAlerta(Alert.AlertType tipo, String titulo, String mensaje) {
+        Alert alert = new Alert(tipo);
+        alert.setTitle(titulo);
+        alert.setHeaderText(null);
+        alert.setContentText(mensaje);
+        alert.showAndWait();
+    }
+
     private void styleInput(TextField textField) {
         textField.setStyle(
                 "-fx-background-color: #1e1e1e;" +
@@ -177,6 +192,16 @@ public class LoginUI extends Application {
         );
         textField.setMaxWidth(300);
         textField.setPrefHeight(40);
+    }
+
+    private String buttonStyle() {
+        return "-fx-background-color: transparent;" +
+               "-fx-border-color: #1DB954;" +
+               "-fx-border-width: 2;" +
+               "-fx-text-fill: white;" +
+               "-fx-font-size: 18px;" +
+               "-fx-background-radius: 12;" +
+               "-fx-border-radius: 12;";
     }
 
     public static void main(String[] args) {
