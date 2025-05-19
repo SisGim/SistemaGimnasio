@@ -1,22 +1,17 @@
 package ui;
 
 import database.UsuarioDAO;
-import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.Scene;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
-import javafx.stage.Stage;
 
 import java.util.List;
 
-public class GestionUsuariosUI extends Application {
+public class GestionUsuariosUI {
 
-    @Override
-    public void start(Stage primaryStage) {
-        primaryStage.setTitle("Gestión de Usuarios");
-
+    public Node getVista() {
         Label lblTitulo = new Label("GESTIÓN DE ROLES DE USUARIOS");
         lblTitulo.setStyle("-fx-font-size: 22px; -fx-text-fill: white;");
 
@@ -70,9 +65,6 @@ public class GestionUsuariosUI extends Application {
         layout.setAlignment(Pos.CENTER);
         layout.setPadding(new Insets(40));
         layout.setStyle("-fx-background-color: black;");
-
-        Scene scene = new Scene(layout, 500, 400);
-        primaryStage.setScene(scene);
-        primaryStage.show();
+        return layout;
     }
 }

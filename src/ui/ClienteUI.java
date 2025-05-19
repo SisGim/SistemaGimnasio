@@ -4,14 +4,15 @@ import database.ClienteDAO;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Pos;
-import javafx.scene.Scene;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
-import javafx.stage.Stage;
 import models.Cliente;
 
 import java.util.Comparator;
 import java.util.regex.Pattern;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
 
 public class ClienteUI {
 
@@ -23,9 +24,7 @@ public class ClienteUI {
         this.rolUsuario = rolUsuario;
     }
 
-    public void start(Stage primaryStage) {
-        primaryStage.setTitle("Gestión de Clientes");
-
+    public Node getVista() {
         configurarTabla();
 
         Button btnAgregar = new Button("Agregar Cliente");
@@ -53,11 +52,8 @@ public class ClienteUI {
 
         VBox layout = new VBox(10, tableView, btnAgregar, btnModificar, btnEliminar);
         layout.setAlignment(Pos.CENTER);
-        layout.setStyle("-fx-padding: 20px;");
-
-        Scene scene = new Scene(layout, 600, 400);
-        primaryStage.setScene(scene);
-        primaryStage.show();
+        layout.setStyle("-fx-padding: 20px; -fx-background-color: black;");
+        return layout;
     }
 
     private void configurarTabla() {
