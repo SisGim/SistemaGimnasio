@@ -74,7 +74,10 @@ public class ClienteUI {
         TableColumn<Cliente, String> colMembresia = new TableColumn<>("Membresía");
         colMembresia.setCellValueFactory(cellData -> cellData.getValue().membresiaProperty());
 
-        tableView.getColumns().addAll(colId, colNombre, colTelefono, colEmail, colMembresia);
+        TableColumn<Cliente, String> colIdentificacion = new TableColumn<>("Identificación");
+        colIdentificacion.setCellValueFactory(cellData -> cellData.getValue().identificacionProperty());
+
+        tableView.getColumns().addAll(colId, colNombre, colTelefono, colEmail, colMembresia, colIdentificacion);
     }
 
     private void mostrarFormularioCliente(Cliente clienteExistente) {
@@ -97,14 +100,18 @@ public class ClienteUI {
         cmbMembresia.getItems().addAll("Básica", "Premium", "VIP", "Familiar");
         cmbMembresia.setValue(esNuevo ? "Básica" : clienteExistente.getMembresia());
 
+        Label lblIdentificacion = new Label("Identificación:");
+        TextField txtIdentificacion = new TextField(esNuevo ? "" : clienteExistente.getIdentificacion());
+
         Button btnGuardar = new Button(esNuevo ? "Guardar" : "Guardar Cambios");
         btnGuardar.setOnAction(e -> {
             String nombre = txtNombre.getText().trim();
             String telefono = txtTelefono.getText().trim();
             String email = txtEmail.getText().trim();
             String membresia = cmbMembresia.getValue();
+            String identificacion = txtIdentificacion.getText().trim();
 
-            if (nombre.isEmpty() || telefono.isEmpty() || email.isEmpty() || membresia == null) {
+            if (nombre.isEmpty() || telefono.isEmpty() || email.isEmpty() || membresia == null || identificacion.isEmpty()) {
                 mostrarError("Por favor, llena todos los campos.");
                 return;
             }
@@ -120,7 +127,7 @@ public class ClienteUI {
             }
 
             if (esNuevo) {
-                Cliente nuevoCliente = new Cliente(0, nombre, telefono, email, membresia);
+                Cliente nuevoCliente = new Cliente(0, nombre, telefono, email, membresia, identificacion);
                 ClienteDAO.agregarCliente(nuevoCliente);
                 mostrarInfo("Cliente agregado exitosamente.");
             } else {
@@ -128,6 +135,7 @@ public class ClienteUI {
                 clienteExistente.setTelefono(telefono);
                 clienteExistente.setEmail(email);
                 clienteExistente.setMembresia(membresia);
+                clienteExistente.setIdentificacion(identificacion);
                 ClienteDAO.actualizarCliente(clienteExistente);
                 mostrarInfo("Cliente modificado exitosamente.");
             }
@@ -136,11 +144,18 @@ public class ClienteUI {
             ventana.close();
         });
 
-        VBox layout = new VBox(10, lblNombre, txtNombre, lblTelefono, txtTelefono, lblEmail, txtEmail, lblMembresia, cmbMembresia, btnGuardar);
+        VBox layout = new VBox(10,
+                lblNombre, txtNombre,
+                lblTelefono, txtTelefono,
+                lblEmail, txtEmail,
+                lblMembresia, cmbMembresia,
+                lblIdentificacion, txtIdentificacion,
+                btnGuardar
+        );
         layout.setAlignment(Pos.CENTER);
         layout.setStyle("-fx-padding: 20px;");
 
-        Scene scene = new Scene(layout, 300, 350);
+        Scene scene = new Scene(layout, 350, 450);
         ventana.setScene(scene);
         ventana.show();
     }

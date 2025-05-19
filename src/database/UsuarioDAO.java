@@ -1,5 +1,6 @@
 package database;
 
+import models.Cliente;
 import util.CorreoUtil;
 
 import java.sql.Connection;
@@ -15,7 +16,7 @@ public class UsuarioDAO {
         try (Connection conn = Database.connect()) {
             // Verificar si el email ya existe
             PreparedStatement checkStmt = conn.prepareStatement(
-                "SELECT COUNT(*) FROM usuarios WHERE email = ?"
+                    "SELECT COUNT(*) FROM usuarios WHERE email = ?"
             );
             checkStmt.setString(1, email);
             ResultSet rs = checkStmt.executeQuery();
@@ -25,7 +26,7 @@ public class UsuarioDAO {
 
             // Insertar nuevo usuario con rol 'cliente'
             PreparedStatement stmt = conn.prepareStatement(
-                "INSERT INTO usuarios (email, password, rol) VALUES (?, ?, 'cliente')"
+                    "INSERT INTO usuarios (email, password, rol) VALUES (?, ?, 'Cliente')"
             );
             stmt.setString(1, email);
             stmt.setString(2, password);
@@ -44,11 +45,29 @@ public class UsuarioDAO {
     public static boolean actualizarRol(String email, String nuevoRol) {
         try (Connection conn = Database.connect()) {
             PreparedStatement stmt = conn.prepareStatement(
-                "UPDATE usuarios SET rol = ? WHERE email = ?"
+                    "UPDATE usuarios SET rol = ? WHERE email = ?"
             );
             stmt.setString(1, nuevoRol);
             stmt.setString(2, email);
-            return stmt.executeUpdate() > 0;
+            boolean actualizado = stmt.executeUpdate() > 0;
+
+            if (actualizado && nuevoRol.equalsIgnoreCase("Cliente")) {
+                // Verifica si ya existe el cliente
+                if (ClienteDAO.obtenerClientePorCorreo(email) == null) {
+                    Cliente nuevoCliente = new Cliente(
+                            0, // ID autoasignado
+                            "Por completar", // Nombre null
+                            "Por completar", // Teléfono null
+                            email, // Email viene del usuario
+                            "Básica", // Membresía por defecto
+                            "Por completar" // Identificación null
+                    );
+                    ClienteDAO.agregarCliente(nuevoCliente);
+                    System.out.println("👤 Cliente agregado tras cambio de rol.");
+                }
+            }
+
+            return actualizado;
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
@@ -86,8 +105,7 @@ public class UsuarioDAO {
     public static String verificarCredenciales(String email, String password) {
         String sql = "SELECT rol FROM usuarios WHERE email = ? AND password = ?";
 
-        try (Connection conn = Database.connect();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conn = Database.connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, email.trim());
             pstmt.setString(2, password.trim());

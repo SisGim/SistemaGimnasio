@@ -5,6 +5,8 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
@@ -13,9 +15,11 @@ public class DashboardUI {
 
     private BorderPane root;
     private String rol;
+    private String correoUsuario;
 
-    public DashboardUI(String rol) {
+    public DashboardUI(String rol, String correoUsuario) {
         this.rol = rol;
+        this.correoUsuario = correoUsuario;
     }
 
     public void start(Stage stage) {
@@ -40,18 +44,28 @@ public class DashboardUI {
     }
 
     private VBox crearSideMenu() {
+        // Ícono de perfil
+        ImageView perfilIcon = new ImageView(new Image(getClass().getResourceAsStream("/resources/user_icon.png")));
+        perfilIcon.setFitHeight(35);
+        perfilIcon.setFitWidth(35);
+        perfilIcon.setOnMouseClicked(e -> mostrarPerfil());
+
         Label lblTitulo = new Label("⚛️ TITAN\nFORGE");
         lblTitulo.setFont(new Font("Arial Black", 20));
         lblTitulo.setStyle("-fx-text-fill: white;");
 
-        Button btnUsuarios = crearBoton("👤 Usuarios", () -> mostrarUsuarios());
-        Button btnClientes = crearBoton("🧾 Clientes", () -> mostrarClientes());
+        VBox header = new VBox(perfilIcon, lblTitulo);
+        header.setAlignment(Pos.CENTER);
+        header.setSpacing(10);
+
+        Button btnUsuarios = crearBoton("👤 Usuarios", this::mostrarUsuarios);
+        Button btnClientes = crearBoton("🧾 Clientes", this::mostrarClientes);
         Button btnMaquinas = crearBoton("🛠️ Máquinas", () -> mostrarSeccion("Módulo de Máquinas"));
         Button btnPagos = crearBoton("💳 Pagos", () -> mostrarSeccion("Módulo de Pagos"));
         Button btnReportes = crearBoton("📊 Reportes", () -> mostrarSeccion("Módulo de Reportes"));
         Button btnCerrarSesion = crearBoton("⛔ Cerrar sesión", () -> System.exit(0));
 
-        VBox menu = new VBox(15, lblTitulo, btnUsuarios, btnClientes, btnMaquinas, btnPagos, btnReportes, btnCerrarSesion);
+        VBox menu = new VBox(15, header, btnUsuarios, btnClientes, btnMaquinas, btnPagos, btnReportes, btnCerrarSesion);
         menu.setAlignment(Pos.TOP_CENTER);
         menu.setPadding(new Insets(25));
         menu.setStyle("-fx-background-color: #111111;");
@@ -92,5 +106,10 @@ public class DashboardUI {
     private void mostrarClientes() {
         ClienteUI clientes = new ClienteUI(rol);
         root.setCenter(clientes.getVista());
+    }
+
+    private void mostrarPerfil() {
+        PerfilUsuarioUI perfil = new PerfilUsuarioUI(correoUsuario);
+        root.setCenter(perfil);
     }
 }

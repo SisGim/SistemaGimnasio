@@ -55,7 +55,7 @@ public class LoginUI extends Application {
             String rol = UsuarioDAO.verificarCredenciales(email, password);
             if (rol != null) {
                 Stage nuevoStage = new Stage();
-                new DashboardUI(rol).start(nuevoStage); // Abre el dashboard según el rol
+                new DashboardUI(rol, email).start(nuevoStage);  // <-- Aquí se pasa también el correo
                 primaryStage.close();
             } else {
                 lblMensajeError.setText("Credenciales incorrectas o usuario no registrado.");

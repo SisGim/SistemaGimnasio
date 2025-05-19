@@ -3,22 +3,29 @@ package models;
 import javafx.beans.property.*;
 
 public class Cliente {
-    private IntegerProperty id;
-    private StringProperty nombre;
-    private StringProperty telefono;
-    private StringProperty email;
-    private StringProperty membresia;
+    private final IntegerProperty id;
+    private final StringProperty nombre;
+    private final StringProperty telefono;
+    private final StringProperty email;
+    private final StringProperty membresia;
+    private final StringProperty identificacion;
 
-    // 📌 Constructor
-    public Cliente(int id, String nombre, String telefono, String email, String membresia) {
+    // 📌 Constructor con identificación
+    public Cliente(int id, String nombre, String telefono, String email, String membresia, String identificacion) {
         this.id = new SimpleIntegerProperty(id);
         this.nombre = new SimpleStringProperty(nombre);
         this.telefono = new SimpleStringProperty(telefono);
         this.email = new SimpleStringProperty(email);
         this.membresia = new SimpleStringProperty(membresia);
+        this.identificacion = new SimpleStringProperty(identificacion);
     }
 
-    // 📌 Getters y Setters usando Property para TableView
+    // 📌 Constructor sin identificación (opcional para compatibilidad)
+    public Cliente(int id, String nombre, String telefono, String email, String membresia) {
+        this(id, nombre, telefono, email, membresia, "");
+    }
+
+    // 📌 Getters y Setters
     public int getId() { return id.get(); }
     public void setId(int id) { this.id.set(id); }
     public IntegerProperty idProperty() { return id; }
@@ -38,4 +45,8 @@ public class Cliente {
     public String getMembresia() { return membresia.get(); }
     public void setMembresia(String membresia) { this.membresia.set(membresia); }
     public StringProperty membresiaProperty() { return membresia; }
+
+    public String getIdentificacion() { return identificacion.get(); }
+    public void setIdentificacion(String identificacion) { this.identificacion.set(identificacion); }
+    public StringProperty identificacionProperty() { return identificacion; }
 }
