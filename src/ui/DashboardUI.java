@@ -1,5 +1,6 @@
 package ui;
 
+import database.ClienteDAO;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -10,6 +11,8 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
+import models.Cliente;
+import util.CustomDialogUtil;
 
 public class DashboardUI {
 
@@ -38,13 +41,28 @@ public class DashboardUI {
         center.setAlignment(Pos.CENTER);
         root.setCenter(center);
 
+        if ("Cliente".equalsIgnoreCase(rol)) {
+            Cliente cliente = ClienteDAO.obtenerClientePorCorreo(correoUsuario);
+            if (cliente != null &&
+                (esPorCompletar(cliente.getNombre()) ||
+                 esPorCompletar(cliente.getTelefono()) ||
+                 esPorCompletar(cliente.getIdentificacion()))) {
+
+                CustomDialogUtil.mostrarAlertaEstilizada(
+                        "Información incompleta",
+                        "Debes completar tu perfil antes de usar el sistema.",
+                        "Haz clic en el ícono de perfil (arriba a la izquierda) para completar tus datos."
+                );
+                mostrarPerfil();
+            }
+        }
+
         Scene scene = new Scene(root, 1280, 720);
         stage.setScene(scene);
         stage.show();
     }
 
     private VBox crearSideMenu() {
-        // Ícono de perfil
         ImageView perfilIcon = new ImageView(new Image(getClass().getResourceAsStream("/resources/user_icon.png")));
         perfilIcon.setFitHeight(35);
         perfilIcon.setFitWidth(35);
@@ -78,16 +96,40 @@ public class DashboardUI {
         Button btn = new Button(texto);
         btn.setPrefWidth(180);
         btn.setStyle(
-            "-fx-background-color: transparent;" +
-            "-fx-border-color: #1DB954;" +
-            "-fx-border-width: 2;" +
-            "-fx-text-fill: white;" +
-            "-fx-font-size: 15px;" +
-            "-fx-background-radius: 8;" +
-            "-fx-border-radius: 8;"
+                "-fx-background-color: transparent;" +
+                        "-fx-border-color: #1DB954;" +
+                        "-fx-border-width: 2;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-size: 15px;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-border-radius: 8;"
         );
-        btn.setOnAction(e -> accion.run());
+        btn.setOnAction(e -> {
+            if (tieneDatosIncompletos()) {
+                CustomDialogUtil.mostrarAlertaEstilizada(
+                        "Información incompleta",
+                        "Debes completar tu perfil antes de usar el sistema.",
+                        "Haz clic en el ícono de perfil (arriba a la izquierda) para completar tus datos."
+                );
+                mostrarPerfil();
+                return;
+            }
+            accion.run();
+        });
         return btn;
+    }
+
+    private boolean tieneDatosIncompletos() {
+        if (!"Cliente".equalsIgnoreCase(rol)) return false;
+        Cliente cliente = ClienteDAO.obtenerClientePorCorreo(correoUsuario);
+        if (cliente == null) return false;
+        return esPorCompletar(cliente.getNombre()) ||
+               esPorCompletar(cliente.getTelefono()) ||
+               esPorCompletar(cliente.getIdentificacion());
+    }
+
+    private boolean esPorCompletar(String campo) {
+        return campo == null || campo.trim().isEmpty() || campo.equalsIgnoreCase("Por completar");
     }
 
     private void mostrarSeccion(String mensaje) {
@@ -99,17 +141,14 @@ public class DashboardUI {
     }
 
     private void mostrarUsuarios() {
-        GestionUsuariosUI gestion = new GestionUsuariosUI();
-        root.setCenter(gestion.getVista());
+        root.setCenter(new GestionUsuariosUI().getVista());
     }
 
     private void mostrarClientes() {
-        ClienteUI clientes = new ClienteUI(rol);
-        root.setCenter(clientes.getVista());
+        root.setCenter(new ClienteUI(rol).getVista());
     }
 
     private void mostrarPerfil() {
-        PerfilUsuarioUI perfil = new PerfilUsuarioUI(correoUsuario);
-        root.setCenter(perfil);
+        root.setCenter(new PerfilUsuarioUI(correoUsuario));
     }
 }
