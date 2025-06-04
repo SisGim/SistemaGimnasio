@@ -1,4 +1,4 @@
-name: Build and Test on Main Merge
+name: Java Compile and Test
 
 on:
   push:
@@ -6,40 +6,41 @@ on:
       - main
 
 jobs:
-  build-test:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - name: Clonar repositorio
+      uses: actions/checkout@v3
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
+    - name: Configurar Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '17'
 
-      - name: Cache Maven packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+    - name: Compilar código fuente
+      run: |
+        mkdir -p out
+        find src/main/java -name "*.java" > sources.txt
+        javac -d out @sources.txt
 
-      - name: Compile project
-        run: mvn compile
+    - name: Compilar pruebas
+      run: |
+        mkdir -p test-out
+        find src/test/java -name "*.java" > test-sources.txt
+        javac -cp out:libs/junit-platform-console-standalone-1.10.0.jar -d test-out @test-sources.txt
 
-      - name: Run tests
-        run: mvn test
+    - name: Ejecutar pruebas
+      run: |
+        java -jar libs/junit-platform-console-standalone-1.10.0.jar \
+          --class-path out:test-out \
+          --scan-class-path \
+          --reports-dir test-reports
 
-      - name: Generate test report
-        if: always()
-        run: mvn surefire-report:report-only
-
-      - name: Upload test report as artifact
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: test-report
-          path: target/site/surefire-report.html
+    - name: Subir reporte de pruebas
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: junit-test-report
+        path: test-reports
