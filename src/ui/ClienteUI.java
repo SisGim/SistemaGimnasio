@@ -1,8 +1,8 @@
 package ui;
 
 import database.ClienteDAO;
-import database.MembresiaDAO;
 import database.HistorialMembresiaDAO;
+import database.MembresiaDAO;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Pos;
@@ -12,8 +12,8 @@ import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import models.Cliente;
-import models.Membresia;
 import models.HistorialMembresia;
+import models.Membresia;
 
 import java.time.LocalDate;
 import java.util.Comparator;
@@ -25,9 +25,15 @@ public class ClienteUI {
     private TableView<Cliente> tableView = new TableView<>();
     private ObservableList<Cliente> clientesList = FXCollections.observableArrayList();
     private String rolUsuario;
+    private String correoEntrenador;
 
     public ClienteUI(String rolUsuario) {
+        this(rolUsuario, null);
+    }
+
+    public ClienteUI(String rolUsuario, String correoEntrenador) {
         this.rolUsuario = rolUsuario;
+        this.correoEntrenador = correoEntrenador;
     }
 
     public Node getVista() {
@@ -37,11 +43,20 @@ public class ClienteUI {
         Button btnModificar = new Button("Modificar Cliente");
         Button btnEliminar = new Button("Eliminar Cliente");
 
-        if (!"Administrador".equals(rolUsuario)) {
+        // Restricción: solo Admin puede eliminar
+        if (!"Administrador".equalsIgnoreCase(rolUsuario)) {
             btnEliminar.setDisable(true);
         }
 
-        clientesList.addAll(ClienteDAO.obtenerClientes());
+        // Carga de datos según rol
+        if ("Entrenador".equalsIgnoreCase(rolUsuario)) {
+            clientesList.addAll(ClienteDAO.obtenerClientesAsignados(correoEntrenador));
+            btnAgregar.setDisable(true);
+            btnEliminar.setDisable(true);
+        } else {
+            clientesList.addAll(ClienteDAO.obtenerClientes());
+        }
+
         ordenarClientes();
         tableView.setItems(clientesList);
 
@@ -217,7 +232,11 @@ public class ClienteUI {
     }
 
     private void actualizarTabla() {
-        clientesList.setAll(ClienteDAO.obtenerClientes());
+        if ("Entrenador".equalsIgnoreCase(rolUsuario)) {
+            clientesList.setAll(ClienteDAO.obtenerClientesAsignados(correoEntrenador));
+        } else {
+            clientesList.setAll(ClienteDAO.obtenerClientes());
+        }
         ordenarClientes();
     }
 
@@ -248,4 +267,6 @@ public class ClienteUI {
         alert.setContentText(mensaje);
         alert.showAndWait();
     }
+    
+    
 }

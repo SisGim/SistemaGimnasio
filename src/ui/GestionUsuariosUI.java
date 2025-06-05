@@ -24,7 +24,7 @@ public class GestionUsuariosUI {
         lblRolActual.setStyle("-fx-text-fill: white;");
 
         ComboBox<String> cmbRoles = new ComboBox<>();
-        cmbRoles.getItems().addAll("Administrador", "Empleado", "Cliente");
+        cmbRoles.getItems().addAll("Administrador", "Empleado", "Cliente", "Entrenador"); // ✅ Incluido nuevo rol
         cmbRoles.setPromptText("Nuevo rol");
 
         Label lblResultado = new Label();

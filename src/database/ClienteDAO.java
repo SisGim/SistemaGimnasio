@@ -48,6 +48,30 @@ public class ClienteDAO {
         return clientes;
     }
 
+    public static List<Cliente> obtenerClientesPorEntrenador(String correoEntrenador) {
+        List<Cliente> clientes = new ArrayList<>();
+        String sql = "SELECT c.* FROM clientes c INNER JOIN asignaciones a ON c.email = a.cliente_email WHERE a.entrenador_email = ?";
+
+        try (Connection conn = Database.connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, correoEntrenador);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                Cliente cliente = new Cliente(
+                        rs.getInt("id"),
+                        rs.getString("nombre"),
+                        rs.getString("telefono"),
+                        rs.getString("email"),
+                        rs.getString("membresia"),
+                        rs.getString("identificacion")
+                );
+                clientes.add(cliente);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return clientes;
+    }
+
     public static void actualizarCliente(Cliente cliente) {
         String sql = "UPDATE clientes SET nombre=?, telefono=?, email=?, membresia=?, identificacion=? WHERE id=?";
 
@@ -172,4 +196,31 @@ public class ClienteDAO {
         }
         return 0;
     }
+    
+    public static List<Cliente> obtenerClientesAsignados(String correoEntrenador) {
+    List<Cliente> clientes = new ArrayList<>();
+    String sql = "SELECT c.* FROM clientes c " +
+                 "INNER JOIN asignaciones a ON c.email = a.cliente_email " +
+                 "WHERE a.entrenador_email = ?";
+
+    try (Connection conn = Database.connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        pstmt.setString(1, correoEntrenador);
+        ResultSet rs = pstmt.executeQuery();
+        while (rs.next()) {
+            Cliente cliente = new Cliente(
+                    rs.getInt("id"),
+                    rs.getString("nombre"),
+                    rs.getString("telefono"),
+                    rs.getString("email"),
+                    rs.getString("membresia"),
+                    rs.getString("identificacion")
+            );
+            clientes.add(cliente);
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+    return clientes;
+}
+
 }

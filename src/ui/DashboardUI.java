@@ -2,6 +2,7 @@ package ui;
 
 import database.ClienteDAO;
 import database.HistorialMembresiaDAO;
+import database.UsuarioDAO;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -15,6 +16,7 @@ import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import models.Cliente;
 import models.HistorialMembresia;
+import models.Usuario;
 import util.CustomDialogUtil;
 
 import java.time.LocalDate;
@@ -27,10 +29,25 @@ public class DashboardUI {
     private BorderPane root;
     private String rol;
     private String correoUsuario;
+    private boolean perfilIncompleto;
 
     public DashboardUI(String rol, String correoUsuario) {
         this.rol = rol;
         this.correoUsuario = correoUsuario;
+
+        if ("Cliente".equalsIgnoreCase(rol)) {
+            Cliente cliente = ClienteDAO.obtenerClientePorCorreo(correoUsuario);
+            if (cliente != null && contienePorCompletar(cliente.getNombre(), cliente.getTelefono(), cliente.getIdentificacion())) {
+                perfilIncompleto = true;
+            }
+        }
+
+        if ("Entrenador".equalsIgnoreCase(rol)) {
+            Usuario usuario = UsuarioDAO.obtenerUsuarioPorCorreo(correoUsuario);
+            if (usuario != null && contienePorCompletar(usuario.getNombre(), usuario.getTelefono(), usuario.getIdentificacion())) {
+                perfilIncompleto = true;
+            }
+        }
     }
 
     public void start(Stage stage) {
@@ -49,22 +66,22 @@ public class DashboardUI {
         center.setAlignment(Pos.CENTER);
         root.setCenter(center);
 
+        if (perfilIncompleto) {
+            CustomDialogUtil.mostrarAlertaEstilizada("Debes completar tu perfil antes de usar el sistema.\nHaz clic en el ícono de perfil para actualizar tus datos.");
+            mostrarPerfil();
+        }
+
         if ("Cliente".equalsIgnoreCase(rol)) {
             Cliente cliente = ClienteDAO.obtenerClientePorCorreo(correoUsuario);
             if (cliente != null) {
-                if (esPorCompletar(cliente.getNombre()) || esPorCompletar(cliente.getTelefono()) || esPorCompletar(cliente.getIdentificacion())) {
-                    CustomDialogUtil.mostrarAlertaEstilizada("Debes completar tu perfil antes de usar el sistema.\nHaz clic en el ícono de perfil para actualizar tus datos.");
-                    mostrarPerfil();
-                } else {
-                    List<HistorialMembresia> historial = HistorialMembresiaDAO.obtenerHistorialPorIdCliente(cliente.getId());
-                    if (!historial.isEmpty()) {
-                        HistorialMembresia ultima = historial.get(0);
-                        LocalDate fechaFin = LocalDate.parse(ultima.getFechaFin());
-                        long diasRestantes = ChronoUnit.DAYS.between(LocalDate.now(), fechaFin);
-                        if (diasRestantes >= 0 && diasRestantes <= 5) {
-                            CustomDialogUtil.mostrarAlertaEstilizada("⚠️ Tu membresía está próxima a vencer el " +
-                                    fechaFin.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ".\n¡Renueva a tiempo para no perder el acceso!");
-                        }
+                List<HistorialMembresia> historial = HistorialMembresiaDAO.obtenerHistorialPorIdCliente(cliente.getId());
+                if (!historial.isEmpty()) {
+                    HistorialMembresia ultima = historial.get(0);
+                    LocalDate fechaFin = LocalDate.parse(ultima.getFechaFin());
+                    long diasRestantes = ChronoUnit.DAYS.between(LocalDate.now(), fechaFin);
+                    if (diasRestantes >= 0 && diasRestantes <= 5) {
+                        CustomDialogUtil.mostrarAlertaEstilizada("⚠️ Tu membresía está próxima a vencer el "
+                                + fechaFin.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ".\n¡Renueva a tiempo para no perder el acceso!");
                     }
                 }
             }
@@ -110,6 +127,12 @@ public class DashboardUI {
             );
         }
 
+        if ("Entrenador".equalsIgnoreCase(rol)) {
+            menu.getChildren().add(
+                    crearBoton("🧾 Mis Clientes", this::mostrarClientesAsignados)
+            );
+        }
+
         menu.getChildren().add(crearBoton("⛔ Cerrar sesión", () -> System.exit(0)));
 
         menu.setAlignment(Pos.TOP_CENTER);
@@ -133,7 +156,7 @@ public class DashboardUI {
                         "-fx-border-radius: 8;"
         );
         btn.setOnAction(e -> {
-            if (tieneDatosIncompletos()) {
+            if (perfilIncompleto) {
                 CustomDialogUtil.mostrarAlertaEstilizada("Debes completar tu perfil antes de usar el sistema.\nHaz clic en el ícono de perfil para actualizar tus datos.");
                 mostrarPerfil();
                 return;
@@ -143,18 +166,13 @@ public class DashboardUI {
         return btn;
     }
 
-    private boolean tieneDatosIncompletos() {
-        if (!"Cliente".equalsIgnoreCase(rol)) return false;
-        Cliente cliente = ClienteDAO.obtenerClientePorCorreo(correoUsuario);
-        return cliente != null && (
-                esPorCompletar(cliente.getNombre()) ||
-                        esPorCompletar(cliente.getTelefono()) ||
-                        esPorCompletar(cliente.getIdentificacion())
-        );
-    }
-
-    private boolean esPorCompletar(String campo) {
-        return campo == null || campo.trim().isEmpty() || campo.equalsIgnoreCase("Por completar");
+    private boolean contienePorCompletar(String... campos) {
+        for (String campo : campos) {
+            if (campo == null || campo.trim().isEmpty() || campo.toLowerCase().contains("por completar")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void mostrarSeccion(String mensaje) {
@@ -171,6 +189,10 @@ public class DashboardUI {
 
     private void mostrarClientes() {
         root.setCenter(new ClienteUI(rol).getVista());
+    }
+
+    private void mostrarClientesAsignados() {
+        root.setCenter(new ClienteUI("Entrenador").getVista());
     }
 
     private void mostrarMembresias() {
@@ -209,8 +231,8 @@ public class DashboardUI {
 
         LocalDate vencimiento = LocalDate.parse(historial.get(0).getFechaFin());
         if (vencimiento.isBefore(LocalDate.now())) {
-            CustomDialogUtil.mostrarAlertaEstilizada("Tu membresía ha vencido el " +
-                    vencimiento.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ". Renueva para continuar.");
+            CustomDialogUtil.mostrarAlertaEstilizada("Tu membresía ha vencido el "
+                    + vencimiento.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ". Renueva para continuar.");
             return;
         }
 

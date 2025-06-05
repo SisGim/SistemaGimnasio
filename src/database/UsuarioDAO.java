@@ -1,6 +1,7 @@
 package database;
 
 import models.Cliente;
+import models.Usuario;
 import util.CorreoUtil;
 
 import java.sql.Connection;
@@ -24,9 +25,9 @@ public class UsuarioDAO {
                 return false; // Ya registrado
             }
 
-            // Insertar nuevo usuario con rol 'cliente'
+            // Insertar nuevo usuario con datos incompletos
             PreparedStatement stmt = conn.prepareStatement(
-                    "INSERT INTO usuarios (email, password, rol) VALUES (?, ?, 'Cliente')"
+                    "INSERT INTO usuarios (email, password, rol, nombre, telefono, identificacion) VALUES (?, ?, 'Cliente', 'Por completar', 'Por completar', 'Por completar')"
             );
             stmt.setString(1, email);
             stmt.setString(2, password);
@@ -51,19 +52,28 @@ public class UsuarioDAO {
             stmt.setString(2, email);
             boolean actualizado = stmt.executeUpdate() > 0;
 
-            if (actualizado && nuevoRol.equalsIgnoreCase("Cliente")) {
-                // Verifica si ya existe el cliente
-                if (ClienteDAO.obtenerClientePorCorreo(email) == null) {
-                    Cliente nuevoCliente = new Cliente(
-                            0, // ID autoasignado
-                            "Por completar", // Nombre null
-                            "Por completar", // Teléfono null
-                            email, // Email viene del usuario
-                            "Básica", // Membresía por defecto
-                            "Por completar" // Identificación null
-                    );
-                    ClienteDAO.agregarCliente(nuevoCliente);
-                    System.out.println("👤 Cliente agregado tras cambio de rol.");
+            // Inicializar campos incompletos si es necesario
+            if (actualizado) {
+                PreparedStatement initCampos = conn.prepareStatement(
+                        "UPDATE usuarios SET nombre = 'Por completar', telefono = 'Por completar', identificacion = 'Por completar' WHERE email = ?"
+                );
+                initCampos.setString(1, email);
+                initCampos.executeUpdate();
+
+                if (nuevoRol.equalsIgnoreCase("Cliente")) {
+                    // Crear cliente asociado si no existe
+                    if (ClienteDAO.obtenerClientePorCorreo(email) == null) {
+                        Cliente nuevoCliente = new Cliente(
+                                0,
+                                "Por completar",
+                                "Por completar",
+                                email,
+                                "Básica",
+                                "Por completar"
+                        );
+                        ClienteDAO.agregarCliente(nuevoCliente);
+                        System.out.println("👤 Cliente agregado tras cambio de rol.");
+                    }
                 }
             }
 
@@ -72,6 +82,42 @@ public class UsuarioDAO {
             e.printStackTrace();
             return false;
         }
+    }
+
+    public static boolean actualizarUsuarioPorCorreo(Usuario usuario) {
+        String sql = "UPDATE usuarios SET nombre = ?, telefono = ?, identificacion = ? WHERE email = ?";
+        try (Connection conn = Database.connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, usuario.getNombre());
+            pstmt.setString(2, usuario.getTelefono());
+            pstmt.setString(3, usuario.getIdentificacion());
+            pstmt.setString(4, usuario.getEmail());
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace(); // No eliminar, permite ver errores
+            return false;
+        }
+    }
+
+    public static Usuario obtenerUsuarioPorCorreo(String correo) {
+        String sql = "SELECT * FROM usuarios WHERE email = ?";
+        try (Connection conn = Database.connect(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, correo);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return new Usuario(
+                        rs.getInt("id"),
+                        rs.getString("nombre"),
+                        rs.getString("email"),
+                        rs.getString("rol"),
+                        rs.getString("password"),
+                        rs.getString("telefono"),
+                        rs.getString("identificacion")
+                );
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public static List<String> obtenerUsuarios() {
@@ -104,22 +150,16 @@ public class UsuarioDAO {
 
     public static String verificarCredenciales(String email, String password) {
         String sql = "SELECT rol FROM usuarios WHERE email = ? AND password = ?";
-
         try (Connection conn = Database.connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
             pstmt.setString(1, email.trim());
             pstmt.setString(2, password.trim());
-
             ResultSet rs = pstmt.executeQuery();
-
             if (rs.next()) {
                 return rs.getString("rol");
             }
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
         return null; // Credenciales incorrectas
     }
 }
