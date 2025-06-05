@@ -132,13 +132,13 @@ public class DashboardUI {
         Button btn = new Button(texto);
         btn.setPrefWidth(180);
         btn.setStyle(
-                "-fx-background-color: transparent;" +
-                "-fx-border-color: #1DB954;" +
-                "-fx-border-width: 2;" +
-                "-fx-text-fill: white;" +
-                "-fx-font-size: 15px;" +
-                "-fx-background-radius: 8;" +
-                "-fx-border-radius: 8;"
+                "-fx-background-color: transparent;"
+                + "-fx-border-color: #1DB954;"
+                + "-fx-border-width: 2;"
+                + "-fx-text-fill: white;"
+                + "-fx-font-size: 15px;"
+                + "-fx-background-radius: 8;"
+                + "-fx-border-radius: 8;"
         );
         btn.setOnAction(e -> {
             if (debeCompletarPerfil()) {
@@ -189,7 +189,7 @@ public class DashboardUI {
     }
 
     private void mostrarClientesAsignados() {
-        root.setCenter(new ClienteUI("Entrenador").getVista());
+        root.setCenter(new ClienteUI("Entrenador", correoUsuario).getVista());
     }
 
     private void mostrarMembresias() {

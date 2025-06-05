@@ -1,8 +1,10 @@
 package ui;
 
+import database.AsignacionDAO;
 import database.ClienteDAO;
 import database.HistorialMembresiaDAO;
 import database.MembresiaDAO;
+import database.UsuarioDAO;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Pos;
@@ -14,6 +16,7 @@ import javafx.stage.Stage;
 import models.Cliente;
 import models.HistorialMembresia;
 import models.Membresia;
+import util.CustomDialogUtil;
 
 import java.time.LocalDate;
 import java.util.Comparator;
@@ -42,10 +45,12 @@ public class ClienteUI {
         Button btnAgregar = new Button("Agregar Cliente");
         Button btnModificar = new Button("Modificar Cliente");
         Button btnEliminar = new Button("Eliminar Cliente");
+        Button btnAsignar = new Button("Asignar a Entrenador");
 
-        // Restricción: solo Admin puede eliminar
+        // Restricción: solo Admin puede eliminar o asignar
         if (!"Administrador".equalsIgnoreCase(rolUsuario)) {
             btnEliminar.setDisable(true);
+            btnAsignar.setDisable(true);
         }
 
         // Carga de datos según rol
@@ -53,6 +58,7 @@ public class ClienteUI {
             clientesList.addAll(ClienteDAO.obtenerClientesAsignados(correoEntrenador));
             btnAgregar.setDisable(true);
             btnEliminar.setDisable(true);
+            btnAsignar.setDisable(true);
         } else {
             clientesList.addAll(ClienteDAO.obtenerClientes());
         }
@@ -70,8 +76,9 @@ public class ClienteUI {
             }
         });
         btnEliminar.setOnAction(e -> eliminarCliente());
+        btnAsignar.setOnAction(e -> asignarClienteAEntrenador());
 
-        VBox layout = new VBox(10, tableView, btnAgregar, btnModificar, btnEliminar);
+        VBox layout = new VBox(10, tableView, btnAgregar, btnModificar, btnEliminar, btnAsignar);
         layout.setAlignment(Pos.CENTER);
         layout.setStyle("-fx-padding: 20px; -fx-background-color: black;");
         return layout;
@@ -200,6 +207,34 @@ public class ClienteUI {
         ventana.show();
     }
 
+    private void asignarClienteAEntrenador() {
+        Cliente clienteSeleccionado = tableView.getSelectionModel().getSelectedItem();
+        if (clienteSeleccionado == null) {
+            mostrarError("Seleccione un cliente para asignar.");
+            return;
+        }
+
+        List<String> entrenadores = UsuarioDAO.obtenerCorreosPorRol("Entrenador");
+        if (entrenadores.isEmpty()) {
+            mostrarError("No hay entrenadores disponibles.");
+            return;
+        }
+
+        ChoiceDialog<String> dialogo = new ChoiceDialog<>(entrenadores.get(0), entrenadores);
+        dialogo.setTitle("Asignar Cliente");
+        dialogo.setHeaderText("Seleccione un entrenador:");
+        dialogo.setContentText("Entrenador:");
+
+        dialogo.showAndWait().ifPresent(entrenador -> {
+            boolean exito = AsignacionDAO.asignarCliente(entrenador, clienteSeleccionado.getEmail());
+            if (exito) {
+                mostrarInfo("Cliente asignado correctamente.");
+            } else {
+                mostrarError("Error: este cliente ya está asignado.");
+            }
+        });
+    }
+
     private void registrarHistorial(Cliente cliente, Membresia membresia) {
         HistorialMembresia h = new HistorialMembresia();
         h.setIdCliente(cliente.getId());
@@ -267,6 +302,4 @@ public class ClienteUI {
         alert.setContentText(mensaje);
         alert.showAndWait();
     }
-    
-    
 }

@@ -27,7 +27,8 @@ public class UsuarioDAO {
 
             // Insertar nuevo usuario con datos incompletos
             PreparedStatement stmt = conn.prepareStatement(
-                    "INSERT INTO usuarios (email, password, rol, nombre, telefono, identificacion) VALUES (?, ?, 'Cliente', 'Por completar', 'Por completar', 'Por completar')"
+                    "INSERT INTO usuarios (email, password, rol, nombre, telefono, identificacion) " +
+                    "VALUES (?, ?, 'Cliente', 'Por completar', 'Por completar', 'Por completar')"
             );
             stmt.setString(1, email);
             stmt.setString(2, password);
@@ -161,5 +162,20 @@ public class UsuarioDAO {
             e.printStackTrace();
         }
         return null; // Credenciales incorrectas
+    }
+
+    public static List<String> obtenerCorreosPorRol(String rol) {
+        List<String> correos = new ArrayList<>();
+        String sql = "SELECT email FROM usuarios WHERE rol = ?";
+        try (Connection conn = Database.connect(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, rol);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                correos.add(rs.getString("email"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return correos;
     }
 }
