@@ -44,6 +44,24 @@ public class UsuarioDAO {
         }
     }
 
+    public static boolean registrarEmpleado(Usuario empleado) {
+        String sql = "INSERT INTO usuarios (email, nombre, identificacion, telefono, rol, password) VALUES (?, ?, ?, ?, ?, ?)";
+        try (Connection conn = Database.connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, empleado.getEmail());
+            pstmt.setString(2, empleado.getNombre());
+            pstmt.setString(3, empleado.getIdentificacion());
+            pstmt.setString(4, empleado.getTelefono());
+            pstmt.setString(5, "Empleado");
+            pstmt.setString(6, empleado.getPassword());
+            pstmt.executeUpdate();
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public static boolean actualizarRol(String email, String nuevoRol) {
         try (Connection conn = Database.connect()) {
             PreparedStatement stmt = conn.prepareStatement(
