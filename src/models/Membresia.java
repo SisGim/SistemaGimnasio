@@ -9,15 +9,15 @@ public class Membresia {
     private final IntegerProperty duracion;     // Duración en días
     private final DoubleProperty precioBase;    // Precio base por día
 
-    // Constructor sin duración (para membresías globales)
+    // Constructor sin duración (por compatibilidad)
     public Membresia(int id, String tipo, double precioBase) {
         this.id = new SimpleIntegerProperty(id);
         this.tipo = new SimpleStringProperty(tipo);
         this.precioBase = new SimpleDoubleProperty(precioBase);
-        this.duracion = new SimpleIntegerProperty(1); // Valor por defecto para evitar nulls
+        this.duracion = new SimpleIntegerProperty(1); // Valor por defecto
     }
 
-    // Constructor completo con duración personalizada
+    // Constructor completo
     public Membresia(int id, String tipo, double precioBase, int duracion) {
         this.id = new SimpleIntegerProperty(id);
         this.tipo = new SimpleStringProperty(tipo);
@@ -42,6 +42,16 @@ public class Membresia {
         return precioBase.get();
     }
 
+    // ✅ Nuevo método para evitar error en ClienteUI
+    public double getPrecio() {
+        return calcularPrecio();
+    }
+
+    // Duración estimada en meses
+    public int getDuracionMeses() {
+        return Math.max(1, getDuracion() / 30); // Al menos 1 mes
+    }
+
     // Setters
     public void setId(int id) {
         this.id.set(id);
@@ -59,7 +69,7 @@ public class Membresia {
         this.precioBase.set(precioBase);
     }
 
-    // Propiedades JavaFX (para TableView)
+    // Propiedades JavaFX
     public IntegerProperty idProperty() {
         return id;
     }
@@ -76,8 +86,14 @@ public class Membresia {
         return precioBase;
     }
 
-    // Método para calcular el precio total
+    // Cálculo total del precio
     public double calcularPrecio() {
         return getPrecioBase() * getDuracion();
+    }
+
+    // Mostrar en ComboBox
+    @Override
+    public String toString() {
+        return getTipo() + " - $" + getPrecioBase() + " por " + getDuracion() + " día(s)";
     }
 }

@@ -2,6 +2,7 @@ package ui;
 
 import database.ClienteDAO;
 import database.MembresiaDAO;
+import database.HistorialMembresiaDAO;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Pos;
@@ -12,7 +13,9 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import models.Cliente;
 import models.Membresia;
+import models.HistorialMembresia;
 
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -149,6 +152,8 @@ public class ClienteUI {
             if (esNuevo) {
                 Cliente nuevoCliente = new Cliente(0, nombre, telefono, email, tipoMembresia, identificacion);
                 ClienteDAO.agregarCliente(nuevoCliente);
+                nuevoCliente = ClienteDAO.obtenerClientePorCorreo(email);
+                registrarHistorial(nuevoCliente, membresiaSeleccionada);
                 mostrarInfo("Cliente agregado exitosamente.");
             } else {
                 clienteExistente.setNombre(nombre);
@@ -157,6 +162,7 @@ public class ClienteUI {
                 clienteExistente.setMembresia(tipoMembresia);
                 clienteExistente.setIdentificacion(identificacion);
                 ClienteDAO.actualizarCliente(clienteExistente);
+                registrarHistorial(clienteExistente, membresiaSeleccionada);
                 mostrarInfo("Cliente modificado exitosamente.");
             }
 
@@ -177,6 +183,17 @@ public class ClienteUI {
 
         ventana.setScene(new Scene(layout, 400, 500));
         ventana.show();
+    }
+
+    private void registrarHistorial(Cliente cliente, Membresia membresia) {
+        HistorialMembresia h = new HistorialMembresia();
+        h.setIdCliente(cliente.getId());
+        h.setClienteEmail(cliente.getEmail());
+        h.setTipoMembresia(membresia.getTipo());
+        h.setFechaInicio(LocalDate.now().toString());
+        h.setFechaFin(LocalDate.now().plusMonths(membresia.getDuracionMeses()).toString());
+        h.setPrecio(membresia.getPrecio());
+        HistorialMembresiaDAO.insertarHistorialMembresia(h);
     }
 
     private void eliminarCliente() {

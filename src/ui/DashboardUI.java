@@ -71,15 +71,29 @@ public class DashboardUI {
         header.setAlignment(Pos.CENTER);
         header.setSpacing(10);
 
-        Button btnUsuarios = crearBoton("👤 Usuarios", this::mostrarUsuarios);
-        Button btnClientes = crearBoton("🧾 Clientes", this::mostrarClientes);
-        Button btnMembresias = crearBoton("🏷️ Membresías", this::mostrarMembresias);
-        Button btnMaquinas = crearBoton("🛠️ Máquinas", () -> mostrarSeccion("Módulo de Máquinas"));
-        Button btnPagos = crearBoton("💳 Pagos", () -> mostrarSeccion("Módulo de Pagos"));
-        Button btnReportes = crearBoton("📊 Reportes", () -> mostrarSeccion("Módulo de Reportes"));
-        Button btnCerrarSesion = crearBoton("⛔ Cerrar sesión", () -> System.exit(0));
+        VBox menu = new VBox(15);
+        menu.getChildren().add(header);
 
-        VBox menu = new VBox(15, header, btnUsuarios, btnClientes, btnMembresias, btnMaquinas, btnPagos, btnReportes, btnCerrarSesion);
+        if ("Administrador".equalsIgnoreCase(rol) || "Empleado".equalsIgnoreCase(rol)) {
+            menu.getChildren().addAll(
+                    crearBoton("👤 Usuarios", this::mostrarUsuarios),
+                    crearBoton("🧾 Clientes", this::mostrarClientes),
+                    crearBoton("🏷️ Membresías", this::mostrarMembresias),
+                    crearBoton("🛠️ Máquinas", () -> mostrarSeccion("Módulo de Máquinas")),
+                    crearBoton("💳 Pagos", this::mostrarPagos), // ✅ corregido
+                    crearBoton("📊 Reportes", () -> mostrarSeccion("Módulo de Reportes"))
+            );
+        }
+
+        if ("Cliente".equalsIgnoreCase(rol)) {
+            menu.getChildren().addAll(
+                    crearBoton("🛠️ Máquinas", () -> mostrarSeccion("Módulo de Máquinas")),
+                    crearBoton("💳 Membresía", this::mostrarPagoMembresia)
+            );
+        }
+
+        menu.getChildren().add(crearBoton("⛔ Cerrar sesión", () -> System.exit(0)));
+
         menu.setAlignment(Pos.TOP_CENTER);
         menu.setPadding(new Insets(25));
         menu.setStyle("-fx-background-color: #111111;");
@@ -93,12 +107,12 @@ public class DashboardUI {
         btn.setPrefWidth(180);
         btn.setStyle(
                 "-fx-background-color: transparent;"
-                + "-fx-border-color: #1DB954;"
-                + "-fx-border-width: 2;"
-                + "-fx-text-fill: white;"
-                + "-fx-font-size: 15px;"
-                + "-fx-background-radius: 8;"
-                + "-fx-border-radius: 8;"
+                        + "-fx-border-color: #1DB954;"
+                        + "-fx-border-width: 2;"
+                        + "-fx-text-fill: white;"
+                        + "-fx-font-size: 15px;"
+                        + "-fx-background-radius: 8;"
+                        + "-fx-border-radius: 8;"
         );
         btn.setOnAction(e -> {
             if (tieneDatosIncompletos()) {
@@ -112,13 +126,13 @@ public class DashboardUI {
     }
 
     private boolean tieneDatosIncompletos() {
-        if (!"Cliente".equalsIgnoreCase(rol)) {
-            return false;
-        }
+        if (!"Cliente".equalsIgnoreCase(rol)) return false;
         Cliente cliente = ClienteDAO.obtenerClientePorCorreo(correoUsuario);
-        return cliente != null && (esPorCompletar(cliente.getNombre())
-                || esPorCompletar(cliente.getTelefono())
-                || esPorCompletar(cliente.getIdentificacion()));
+        return cliente != null && (
+                esPorCompletar(cliente.getNombre()) ||
+                esPorCompletar(cliente.getTelefono()) ||
+                esPorCompletar(cliente.getIdentificacion())
+        );
     }
 
     private boolean esPorCompletar(String campo) {
@@ -142,10 +156,19 @@ public class DashboardUI {
     }
 
     private void mostrarMembresias() {
-        root.setCenter(new MembresiaUI(rol).getVista()); // ✅ Correcto
+        root.setCenter(new MembresiaUI(rol).getVista());
     }
 
     private void mostrarPerfil() {
         root.setCenter(new PerfilUsuarioUI(correoUsuario));
+    }
+
+    private void mostrarPagoMembresia() {
+        root.setCenter(new PagosUI(rol, correoUsuario).getVista());
+    }
+
+    // ✅ Nuevo método para Admin/Empleado
+    private void mostrarPagos() {
+        root.setCenter(new PagosUI(rol, correoUsuario).getVista());
     }
 }
