@@ -1,6 +1,7 @@
 package ui;
 
 import database.ClienteDAO;
+import database.HistorialMembresiaDAO;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -11,7 +12,13 @@ import javafx.scene.layout.*;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import models.Cliente;
+import models.HistorialMembresia;
 import util.CustomDialogUtil;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 public class DashboardUI {
 
@@ -42,13 +49,23 @@ public class DashboardUI {
 
         if ("Cliente".equalsIgnoreCase(rol)) {
             Cliente cliente = ClienteDAO.obtenerClientePorCorreo(correoUsuario);
-            if (cliente != null
-                    && (esPorCompletar(cliente.getNombre())
-                    || esPorCompletar(cliente.getTelefono())
-                    || esPorCompletar(cliente.getIdentificacion()))) {
-
-                CustomDialogUtil.mostrarAlertaEstilizada("Debes completar tu perfil antes de usar el sistema.\nHaz clic en el ícono de perfil para actualizar tus datos.");
-                mostrarPerfil();
+            if (cliente != null) {
+                if (esPorCompletar(cliente.getNombre()) || esPorCompletar(cliente.getTelefono()) || esPorCompletar(cliente.getIdentificacion())) {
+                    CustomDialogUtil.mostrarAlertaEstilizada("Debes completar tu perfil antes de usar el sistema.\nHaz clic en el ícono de perfil para actualizar tus datos.");
+                    mostrarPerfil();
+                } else {
+                    // ✅ Verificación de membresía próxima a vencer
+                    List<HistorialMembresia> historial = HistorialMembresiaDAO.obtenerHistorialPorIdCliente(cliente.getId());
+                    if (!historial.isEmpty()) {
+                        HistorialMembresia ultima = historial.get(0); // viene ordenado por fecha_inicio DESC
+                        LocalDate fechaFin = LocalDate.parse(ultima.getFechaFin());
+                        long diasRestantes = ChronoUnit.DAYS.between(LocalDate.now(), fechaFin);
+                        if (diasRestantes >= 0 && diasRestantes <= 5) {
+                            CustomDialogUtil.mostrarAlertaEstilizada("⚠️ Tu membresía está próxima a vencer el " +
+                                    fechaFin.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ".\n¡Renueva a tiempo para no perder el acceso!");
+                        }
+                    }
+                }
             }
         }
 
@@ -80,7 +97,7 @@ public class DashboardUI {
                     crearBoton("🧾 Clientes", this::mostrarClientes),
                     crearBoton("🏷️ Membresías", this::mostrarMembresias),
                     crearBoton("🛠️ Máquinas", () -> mostrarSeccion("Módulo de Máquinas")),
-                    crearBoton("💳 Pagos", this::mostrarPagos), // ✅ corregido
+                    crearBoton("💳 Pagos", this::mostrarPagos),
                     crearBoton("📊 Reportes", () -> mostrarSeccion("Módulo de Reportes"))
             );
         }
@@ -106,13 +123,13 @@ public class DashboardUI {
         Button btn = new Button(texto);
         btn.setPrefWidth(180);
         btn.setStyle(
-                "-fx-background-color: transparent;"
-                        + "-fx-border-color: #1DB954;"
-                        + "-fx-border-width: 2;"
-                        + "-fx-text-fill: white;"
-                        + "-fx-font-size: 15px;"
-                        + "-fx-background-radius: 8;"
-                        + "-fx-border-radius: 8;"
+                "-fx-background-color: transparent;" +
+                        "-fx-border-color: #1DB954;" +
+                        "-fx-border-width: 2;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-font-size: 15px;" +
+                        "-fx-background-radius: 8;" +
+                        "-fx-border-radius: 8;"
         );
         btn.setOnAction(e -> {
             if (tieneDatosIncompletos()) {
@@ -167,7 +184,6 @@ public class DashboardUI {
         root.setCenter(new PagosUI(rol, correoUsuario).getVista());
     }
 
-    // ✅ Nuevo método para Admin/Empleado
     private void mostrarPagos() {
         root.setCenter(new PagosUI(rol, correoUsuario).getVista());
     }
