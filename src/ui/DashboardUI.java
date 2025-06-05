@@ -29,25 +29,10 @@ public class DashboardUI {
     private BorderPane root;
     private String rol;
     private String correoUsuario;
-    private boolean perfilIncompleto;
 
     public DashboardUI(String rol, String correoUsuario) {
         this.rol = rol;
         this.correoUsuario = correoUsuario;
-
-        if ("Cliente".equalsIgnoreCase(rol)) {
-            Cliente cliente = ClienteDAO.obtenerClientePorCorreo(correoUsuario);
-            if (cliente != null && contienePorCompletar(cliente.getNombre(), cliente.getTelefono(), cliente.getIdentificacion())) {
-                perfilIncompleto = true;
-            }
-        }
-
-        if ("Entrenador".equalsIgnoreCase(rol)) {
-            Usuario usuario = UsuarioDAO.obtenerUsuarioPorCorreo(correoUsuario);
-            if (usuario != null && contienePorCompletar(usuario.getNombre(), usuario.getTelefono(), usuario.getIdentificacion())) {
-                perfilIncompleto = true;
-            }
-        }
     }
 
     public void start(Stage stage) {
@@ -66,7 +51,7 @@ public class DashboardUI {
         center.setAlignment(Pos.CENTER);
         root.setCenter(center);
 
-        if (perfilIncompleto) {
+        if (debeCompletarPerfil()) {
             CustomDialogUtil.mostrarAlertaEstilizada("Debes completar tu perfil antes de usar el sistema.\nHaz clic en el ícono de perfil para actualizar tus datos.");
             mostrarPerfil();
         }
@@ -148,15 +133,15 @@ public class DashboardUI {
         btn.setPrefWidth(180);
         btn.setStyle(
                 "-fx-background-color: transparent;" +
-                        "-fx-border-color: #1DB954;" +
-                        "-fx-border-width: 2;" +
-                        "-fx-text-fill: white;" +
-                        "-fx-font-size: 15px;" +
-                        "-fx-background-radius: 8;" +
-                        "-fx-border-radius: 8;"
+                "-fx-border-color: #1DB954;" +
+                "-fx-border-width: 2;" +
+                "-fx-text-fill: white;" +
+                "-fx-font-size: 15px;" +
+                "-fx-background-radius: 8;" +
+                "-fx-border-radius: 8;"
         );
         btn.setOnAction(e -> {
-            if (perfilIncompleto) {
+            if (debeCompletarPerfil()) {
                 CustomDialogUtil.mostrarAlertaEstilizada("Debes completar tu perfil antes de usar el sistema.\nHaz clic en el ícono de perfil para actualizar tus datos.");
                 mostrarPerfil();
                 return;
@@ -164,6 +149,18 @@ public class DashboardUI {
             accion.run();
         });
         return btn;
+    }
+
+    private boolean debeCompletarPerfil() {
+        if ("Cliente".equalsIgnoreCase(rol)) {
+            Cliente cliente = ClienteDAO.obtenerClientePorCorreo(correoUsuario);
+            return cliente == null || contienePorCompletar(cliente.getNombre(), cliente.getTelefono(), cliente.getIdentificacion());
+        }
+        if ("Entrenador".equalsIgnoreCase(rol)) {
+            Usuario usuario = UsuarioDAO.obtenerUsuarioPorCorreo(correoUsuario);
+            return usuario == null || contienePorCompletar(usuario.getNombre(), usuario.getTelefono(), usuario.getIdentificacion());
+        }
+        return false;
     }
 
     private boolean contienePorCompletar(String... campos) {
