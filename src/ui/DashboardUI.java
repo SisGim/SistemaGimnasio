@@ -3,6 +3,7 @@ package ui;
 import database.ClienteDAO;
 import database.HistorialMembresiaDAO;
 import database.UsuarioDAO;
+import database.AsistenciaDAO;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -17,9 +18,11 @@ import javafx.stage.Stage;
 import models.Cliente;
 import models.HistorialMembresia;
 import models.Usuario;
+import models.Asistencia;
 import util.CustomDialogUtil;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -57,6 +60,10 @@ public class DashboardUI {
         }
 
         if ("Cliente".equalsIgnoreCase(rol)) {
+            // Registrar asistencia al iniciar sesión
+            Asistencia asistencia = new Asistencia(correoUsuario, LocalDateTime.now());
+            AsistenciaDAO.registrarAsistencia(asistencia);
+
             Cliente cliente = ClienteDAO.obtenerClientePorCorreo(correoUsuario);
             if (cliente != null) {
                 List<HistorialMembresia> historial = HistorialMembresiaDAO.obtenerHistorialPorIdCliente(cliente.getId());
@@ -101,7 +108,7 @@ public class DashboardUI {
                     crearBoton("🏷️ Membresías", this::mostrarMembresias),
                     crearBoton("🛠️ Máquinas", this::mostrarModuloMaquinas),
                     crearBoton("💳 Pagos", this::mostrarPagos),
-                    crearBoton("📊 Reportes", () -> mostrarSeccion("Módulo de Reportes"))
+                    crearBoton("📊 Reportes", this::mostrarReportes)
             );
         }
 
@@ -256,5 +263,9 @@ public class DashboardUI {
         layout.setPadding(new Insets(30));
         layout.setAlignment(Pos.CENTER);
         root.setCenter(layout);
+    }
+
+    private void mostrarReportes() {
+        root.setCenter(new ReportesUI(rol, correoUsuario).getVista());
     }
 }
