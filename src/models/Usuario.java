@@ -8,8 +8,10 @@ public class Usuario {
     private String password;
     private String telefono;
     private String identificacion;
+    private String estado; // Nuevo campo
 
-    public Usuario(int id, String nombre, String email, String rol, String password, String telefono, String identificacion) {
+    // Constructor completo con estado
+    public Usuario(int id, String nombre, String email, String rol, String password, String telefono, String identificacion, String estado) {
         this.id = id;
         this.nombre = nombre;
         this.email = email;
@@ -17,11 +19,17 @@ public class Usuario {
         this.password = password;
         this.telefono = telefono;
         this.identificacion = identificacion;
+        this.estado = estado;
     }
 
-    // Constructor sin teléfono e identificación (por compatibilidad si es necesario)
+    // Constructor sin estado (por compatibilidad)
+    public Usuario(int id, String nombre, String email, String rol, String password, String telefono, String identificacion) {
+        this(id, nombre, email, rol, password, telefono, identificacion, "activo");
+    }
+
+    // Constructor corto (por compatibilidad si es necesario)
     public Usuario(int id, String nombre, String email, String rol, String password) {
-        this(id, nombre, email, rol, password, null, null);
+        this(id, nombre, email, rol, password, null, null, "activo");
     }
 
     // Getters
@@ -53,6 +61,10 @@ public class Usuario {
         return identificacion;
     }
 
+    public String getEstado() {
+        return estado;
+    }
+
     // Setters
     public void setId(int id) {
         this.id = id;
@@ -80,5 +92,9 @@ public class Usuario {
 
     public void setIdentificacion(String identificacion) {
         this.identificacion = identificacion;
+    }
+
+    public void setEstado(String estado) {
+        this.estado = estado;
     }
 }

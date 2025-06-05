@@ -15,28 +15,22 @@ public class UsuarioDAO {
 
     public static boolean registrarUsuario(String email, String password) {
         try (Connection conn = Database.connect()) {
-            // Verificar si el email ya existe
             PreparedStatement checkStmt = conn.prepareStatement(
                     "SELECT COUNT(*) FROM usuarios WHERE email = ?"
             );
             checkStmt.setString(1, email);
             ResultSet rs = checkStmt.executeQuery();
-            if (rs.next() && rs.getInt(1) > 0) {
-                return false; // Ya registrado
-            }
+            if (rs.next() && rs.getInt(1) > 0) return false;
 
-            // Insertar nuevo usuario con datos incompletos
             PreparedStatement stmt = conn.prepareStatement(
-                    "INSERT INTO usuarios (email, password, rol, nombre, telefono, identificacion) " +
-                    "VALUES (?, ?, 'Cliente', 'Por completar', 'Por completar', 'Por completar')"
+                    "INSERT INTO usuarios (email, password, rol, nombre, telefono, identificacion, estado) " +
+                    "VALUES (?, ?, 'Cliente', 'Por completar', 'Por completar', 'Por completar', 'activo')"
             );
             stmt.setString(1, email);
             stmt.setString(2, password);
             stmt.executeUpdate();
 
-            // Enviar correo de confirmación
             CorreoUtil.enviarConfirmacion(email);
-
             return true;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -45,7 +39,7 @@ public class UsuarioDAO {
     }
 
     public static boolean registrarEmpleado(Usuario empleado) {
-        String sql = "INSERT INTO usuarios (email, nombre, identificacion, telefono, rol, password) VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO usuarios (email, nombre, identificacion, telefono, rol, password, estado) VALUES (?, ?, ?, ?, ?, ?, 'activo')";
         try (Connection conn = Database.connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, empleado.getEmail());
@@ -64,14 +58,11 @@ public class UsuarioDAO {
 
     public static boolean actualizarRol(String email, String nuevoRol) {
         try (Connection conn = Database.connect()) {
-            PreparedStatement stmt = conn.prepareStatement(
-                    "UPDATE usuarios SET rol = ? WHERE email = ?"
-            );
+            PreparedStatement stmt = conn.prepareStatement("UPDATE usuarios SET rol = ? WHERE email = ?");
             stmt.setString(1, nuevoRol);
             stmt.setString(2, email);
             boolean actualizado = stmt.executeUpdate() > 0;
 
-            // Inicializar campos incompletos si es necesario
             if (actualizado) {
                 PreparedStatement initCampos = conn.prepareStatement(
                         "UPDATE usuarios SET nombre = 'Por completar', telefono = 'Por completar', identificacion = 'Por completar' WHERE email = ?"
@@ -79,23 +70,18 @@ public class UsuarioDAO {
                 initCampos.setString(1, email);
                 initCampos.executeUpdate();
 
-                if (nuevoRol.equalsIgnoreCase("Cliente")) {
-                    // Crear cliente asociado si no existe
-                    if (ClienteDAO.obtenerClientePorCorreo(email) == null) {
-                        Cliente nuevoCliente = new Cliente(
-                                0,
-                                "Por completar",
-                                "Por completar",
-                                email,
-                                "Básica",
-                                "Por completar"
-                        );
-                        ClienteDAO.agregarCliente(nuevoCliente);
-                        System.out.println("👤 Cliente agregado tras cambio de rol.");
-                    }
+                if (nuevoRol.equalsIgnoreCase("Cliente") && ClienteDAO.obtenerClientePorCorreo(email) == null) {
+                    Cliente nuevoCliente = new Cliente(
+                            0,
+                            "Por completar",
+                            "Por completar",
+                            email,
+                            "Básica",
+                            "Por completar"
+                    );
+                    ClienteDAO.agregarCliente(nuevoCliente);
                 }
             }
-
             return actualizado;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -112,7 +98,43 @@ public class UsuarioDAO {
             pstmt.setString(4, usuario.getEmail());
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
-            e.printStackTrace(); // No eliminar, permite ver errores
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public static boolean modificarEmpleado(Usuario empleado) {
+        String sql = "UPDATE usuarios SET nombre = ?, telefono = ?, identificacion = ? WHERE email = ? AND rol = 'Empleado'";
+        try (Connection conn = Database.connect(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, empleado.getNombre());
+            stmt.setString(2, empleado.getTelefono());
+            stmt.setString(3, empleado.getIdentificacion());
+            stmt.setString(4, empleado.getEmail());
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public static boolean desactivarEmpleado(String correo) {
+        String sql = "UPDATE usuarios SET estado = 'inactivo' WHERE email = ? AND rol = 'Empleado'";
+        try (Connection conn = Database.connect(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, correo);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public static boolean reactivarEmpleado(String correo) {
+        String sql = "UPDATE usuarios SET estado = 'activo' WHERE email = ? AND rol = 'Empleado'";
+        try (Connection conn = Database.connect(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, correo);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
             return false;
         }
     }
@@ -130,7 +152,8 @@ public class UsuarioDAO {
                         rs.getString("rol"),
                         rs.getString("password"),
                         rs.getString("telefono"),
-                        rs.getString("identificacion")
+                        rs.getString("identificacion"),
+                        rs.getString("estado")
                 );
             }
         } catch (SQLException e) {
@@ -151,6 +174,20 @@ public class UsuarioDAO {
             e.printStackTrace();
         }
         return usuarios;
+    }
+
+    public static List<String> obtenerEmpleadosActivos() {
+        List<String> empleados = new ArrayList<>();
+        String sql = "SELECT email FROM usuarios WHERE rol = 'Empleado' AND estado = 'activo'";
+        try (Connection conn = Database.connect(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                empleados.add(rs.getString("email"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return empleados;
     }
 
     public static String obtenerRol(String email) {
@@ -179,7 +216,7 @@ public class UsuarioDAO {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return null; // Credenciales incorrectas
+        return null;
     }
 
     public static List<String> obtenerCorreosPorRol(String rol) {
