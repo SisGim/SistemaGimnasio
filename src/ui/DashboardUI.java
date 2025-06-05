@@ -4,8 +4,7 @@ import database.ClienteDAO;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
@@ -43,16 +42,12 @@ public class DashboardUI {
 
         if ("Cliente".equalsIgnoreCase(rol)) {
             Cliente cliente = ClienteDAO.obtenerClientePorCorreo(correoUsuario);
-            if (cliente != null &&
-                (esPorCompletar(cliente.getNombre()) ||
-                 esPorCompletar(cliente.getTelefono()) ||
-                 esPorCompletar(cliente.getIdentificacion()))) {
+            if (cliente != null
+                    && (esPorCompletar(cliente.getNombre())
+                    || esPorCompletar(cliente.getTelefono())
+                    || esPorCompletar(cliente.getIdentificacion()))) {
 
-                CustomDialogUtil.mostrarAlertaEstilizada(
-                        "Información incompleta",
-                        "Debes completar tu perfil antes de usar el sistema.",
-                        "Haz clic en el ícono de perfil (arriba a la izquierda) para completar tus datos."
-                );
+                CustomDialogUtil.mostrarAlertaEstilizada("Debes completar tu perfil antes de usar el sistema.\nHaz clic en el ícono de perfil para actualizar tus datos.");
                 mostrarPerfil();
             }
         }
@@ -78,12 +73,13 @@ public class DashboardUI {
 
         Button btnUsuarios = crearBoton("👤 Usuarios", this::mostrarUsuarios);
         Button btnClientes = crearBoton("🧾 Clientes", this::mostrarClientes);
+        Button btnMembresias = crearBoton("🏷️ Membresías", this::mostrarMembresias);
         Button btnMaquinas = crearBoton("🛠️ Máquinas", () -> mostrarSeccion("Módulo de Máquinas"));
         Button btnPagos = crearBoton("💳 Pagos", () -> mostrarSeccion("Módulo de Pagos"));
         Button btnReportes = crearBoton("📊 Reportes", () -> mostrarSeccion("Módulo de Reportes"));
         Button btnCerrarSesion = crearBoton("⛔ Cerrar sesión", () -> System.exit(0));
 
-        VBox menu = new VBox(15, header, btnUsuarios, btnClientes, btnMaquinas, btnPagos, btnReportes, btnCerrarSesion);
+        VBox menu = new VBox(15, header, btnUsuarios, btnClientes, btnMembresias, btnMaquinas, btnPagos, btnReportes, btnCerrarSesion);
         menu.setAlignment(Pos.TOP_CENTER);
         menu.setPadding(new Insets(25));
         menu.setStyle("-fx-background-color: #111111;");
@@ -96,21 +92,17 @@ public class DashboardUI {
         Button btn = new Button(texto);
         btn.setPrefWidth(180);
         btn.setStyle(
-                "-fx-background-color: transparent;" +
-                        "-fx-border-color: #1DB954;" +
-                        "-fx-border-width: 2;" +
-                        "-fx-text-fill: white;" +
-                        "-fx-font-size: 15px;" +
-                        "-fx-background-radius: 8;" +
-                        "-fx-border-radius: 8;"
+                "-fx-background-color: transparent;"
+                + "-fx-border-color: #1DB954;"
+                + "-fx-border-width: 2;"
+                + "-fx-text-fill: white;"
+                + "-fx-font-size: 15px;"
+                + "-fx-background-radius: 8;"
+                + "-fx-border-radius: 8;"
         );
         btn.setOnAction(e -> {
             if (tieneDatosIncompletos()) {
-                CustomDialogUtil.mostrarAlertaEstilizada(
-                        "Información incompleta",
-                        "Debes completar tu perfil antes de usar el sistema.",
-                        "Haz clic en el ícono de perfil (arriba a la izquierda) para completar tus datos."
-                );
+                CustomDialogUtil.mostrarAlertaEstilizada("Debes completar tu perfil antes de usar el sistema.\nHaz clic en el ícono de perfil para actualizar tus datos.");
                 mostrarPerfil();
                 return;
             }
@@ -120,12 +112,13 @@ public class DashboardUI {
     }
 
     private boolean tieneDatosIncompletos() {
-        if (!"Cliente".equalsIgnoreCase(rol)) return false;
+        if (!"Cliente".equalsIgnoreCase(rol)) {
+            return false;
+        }
         Cliente cliente = ClienteDAO.obtenerClientePorCorreo(correoUsuario);
-        if (cliente == null) return false;
-        return esPorCompletar(cliente.getNombre()) ||
-               esPorCompletar(cliente.getTelefono()) ||
-               esPorCompletar(cliente.getIdentificacion());
+        return cliente != null && (esPorCompletar(cliente.getNombre())
+                || esPorCompletar(cliente.getTelefono())
+                || esPorCompletar(cliente.getIdentificacion()));
     }
 
     private boolean esPorCompletar(String campo) {
@@ -146,6 +139,10 @@ public class DashboardUI {
 
     private void mostrarClientes() {
         root.setCenter(new ClienteUI(rol).getVista());
+    }
+
+    private void mostrarMembresias() {
+        root.setCenter(new MembresiaUI(rol).getVista()); // ✅ Correcto
     }
 
     private void mostrarPerfil() {

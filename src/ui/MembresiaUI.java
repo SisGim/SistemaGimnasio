@@ -1,68 +1,171 @@
 package ui;
 
-import javafx.application.Application;
+import database.MembresiaDAO;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Pos;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
-import javafx.stage.Stage;
+import javafx.scene.layout.HBox;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 import models.Membresia;
-import database.MembresiaDAO;
 
-public class MembresiaUI extends Application {
+public class MembresiaUI {
 
     private TableView<Membresia> tableView = new TableView<>();
     private ObservableList<Membresia> membresiasList = FXCollections.observableArrayList();
-    private String rolUsuario = "Administrador"; // se toma por defecto que es administrador 'se puede cambiar para simular otro rol'
+    private String rolUsuario;
 
-    @Override
-    public void start(Stage primaryStage) {
-        primaryStage.setTitle("Titan Forge - Gestión de Membresías");
+    public MembresiaUI(String rolUsuario) {
+        this.rolUsuario = rolUsuario;
+    }
 
+    public VBox getVista() {
         configurarTabla();
 
-        Button btnAgregar = new Button("New Membership");
-        Button btnModificar = new Button("Membership Modification");
-        Button btnEliminar = new Button("Cancel Membership");
+        Button btnAgregar = new Button("➕ Nueva Membresía");
+        Button btnModificar = new Button("📝 Modificar Membresía");
+        Button btnEliminar = new Button("❌ Eliminar Membresía");
 
-        if (!"Administrador".equals(rolUsuario)) {
-            btnEliminar.setDisable(true); // solo el administrador puede eliminar
+        if (!"Administrador".equalsIgnoreCase(rolUsuario)) {
+            btnEliminar.setDisable(true);
         }
 
-        membresiasList.addAll(MembresiaDAO.obtenerMembresias());
+        membresiasList.setAll(MembresiaDAO.obtenerMembresias());
         tableView.setItems(membresiasList);
 
-        btnAgregar.setOnAction(e -> agregarMembresia());
-        btnModificar.setOnAction(e -> modificarMembresia());
+        btnAgregar.setOnAction(e -> mostrarFormulario(null));
+        btnModificar.setOnAction(e -> {
+            Membresia seleccionada = tableView.getSelectionModel().getSelectedItem();
+            if (seleccionada != null) {
+                mostrarFormulario(seleccionada);
+            } else {
+                mostrarAlerta("Advertencia", "Selecciona una membresía para modificar.");
+            }
+        });
+
         btnEliminar.setOnAction(e -> eliminarMembresia());
 
-        VBox layout = new VBox(10, tableView, btnAgregar, btnModificar, btnEliminar);
-        layout.setAlignment(Pos.CENTER); // alinea el texto
-        layout.setStyle("-fx-padding: 20px; -fx-background-color: #1E1E1E;"); // estilo del texto
+        HBox botones = new HBox(15, btnAgregar, btnModificar, btnEliminar);
+        botones.setAlignment(Pos.CENTER);
 
-        Scene scene = new Scene(layout, 600, 500);
-        primaryStage.setScene(scene);
-        primaryStage.show();
+        VBox layout = new VBox(20, tableView, botones);
+        layout.setStyle("-fx-padding: 25px; -fx-background-color: #111111;");
+        layout.setAlignment(Pos.CENTER);
+
+        return layout;
     }
 
     private void configurarTabla() {
-    TableColumn<Membresia, Number> colId = new TableColumn<>("Client ID");
-    colId.setCellValueFactory(cellData -> cellData.getValue().idProperty());
+        tableView.getColumns().clear();
 
-    TableColumn<Membresia, String> colNombre = new TableColumn<>("Membership Type");
-    colNombre.setCellValueFactory(cellData -> cellData.getValue().nombreProperty());
+        TableColumn<Membresia, Number> colId = new TableColumn<>("ID");
+        colId.setCellValueFactory(data -> data.getValue().idProperty());
 
-    TableColumn<Membresia, Number> colDuracion = new TableColumn<>("Duration (Days)");
-    colDuracion.setCellValueFactory(cellData -> cellData.getValue().duracionProperty());
+        TableColumn<Membresia, String> colTipo = new TableColumn<>("Tipo");
+        colTipo.setCellValueFactory(data -> data.getValue().tipoProperty());
 
-    TableColumn<Membresia, Number> colPrecio = new TableColumn<>("Price ($)"); // calculamos el precio
-    colPrecio.setCellValueFactory(cellData -> 
-        new SimpleDoubleProperty(cellData.getValue().calcularPrecio())
-    );
+        TableColumn<Membresia, Number> colDuracion = new TableColumn<>("Duración (días)");
+        colDuracion.setCellValueFactory(data -> data.getValue().duracionProperty());
 
-    tableView.getColumns().addAll(colId, colNombre, colDuracion, colPrecio);
+        TableColumn<Membresia, Number> colPrecio = new TableColumn<>("Precio ($)");
+        colPrecio.setCellValueFactory(data -> new SimpleDoubleProperty(data.getValue().calcularPrecio()));
+
+        tableView.getColumns().addAll(colId, colTipo, colDuracion, colPrecio);
+    }
+
+    private void mostrarFormulario(Membresia existente) {
+        Dialog<Membresia> dialog = new Dialog<>();
+        dialog.setTitle(existente == null ? "Agregar Membresía" : "Modificar Membresía");
+
+        Label lblTipo = new Label("Tipo:");
+        TextField txtTipo = new TextField(existente != null ? existente.getTipo() : "");
+
+        Label lblDuracion = new Label("Duración (días):");
+        TextField txtDuracion = new TextField(existente != null ? String.valueOf(existente.getDuracion()) : "");
+
+        Label lblPrecio = new Label("Precio Base ($):");
+        TextField txtPrecio = new TextField(existente != null ? String.valueOf(existente.getPrecioBase()) : "");
+
+        VBox contenido = new VBox(10, lblTipo, txtTipo, lblDuracion, txtDuracion, lblPrecio, txtPrecio);
+        contenido.setAlignment(Pos.CENTER_LEFT);
+        contenido.setStyle("-fx-background-color: #1e1e1e; -fx-padding: 20px;");
+        lblTipo.setTextFill(Color.WHITE);
+        lblDuracion.setTextFill(Color.WHITE);
+        lblPrecio.setTextFill(Color.WHITE);
+
+        dialog.getDialogPane().setContent(contenido);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == ButtonType.OK) {
+                try {
+                    String tipo = txtTipo.getText().trim();
+                    int duracion = Integer.parseInt(txtDuracion.getText().trim());
+                    double precioBase = Double.parseDouble(txtPrecio.getText().trim());
+
+                    if (tipo.isEmpty() || duracion <= 0 || precioBase <= 0) {
+                        throw new IllegalArgumentException("Todos los campos deben ser válidos.");
+                    }
+
+                    if (existente == null) {
+                        Membresia nueva = new Membresia(0, tipo, precioBase, duracion);
+                        MembresiaDAO.agregarMembresia(nueva);
+                        mostrarAlerta("Éxito", "Membresía agregada correctamente.");
+                    } else {
+                        existente.setTipo(tipo);
+                        existente.setDuracion(duracion);
+                        existente.setPrecioBase(precioBase);
+                        MembresiaDAO.actualizarMembresia(existente);
+                        mostrarAlerta("Éxito", "Membresía actualizada correctamente.");
+                    }
+
+                    actualizarTabla();
+
+                } catch (NumberFormatException ex) {
+                    mostrarAlerta("Error", "Duración y precio deben ser números válidos.");
+                } catch (IllegalArgumentException ex) {
+                    mostrarAlerta("Error", ex.getMessage());
+                }
+            }
+            return null;
+        });
+
+        dialog.showAndWait();
+    }
+
+    private void eliminarMembresia() {
+        Membresia seleccionada = tableView.getSelectionModel().getSelectedItem();
+        if (seleccionada == null) {
+            mostrarAlerta("Advertencia", "Selecciona una membresía para eliminar.");
+            return;
+        }
+
+        Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmacion.setTitle("Confirmación");
+        confirmacion.setHeaderText("¿Estás seguro de eliminar esta membresía?");
+        confirmacion.setContentText("Esta acción no se puede deshacer.");
+
+        confirmacion.showAndWait().ifPresent(respuesta -> {
+            if (respuesta == ButtonType.OK) {
+                MembresiaDAO.eliminarMembresia(seleccionada.getId());
+                actualizarTabla();
+                mostrarAlerta("Éxito", "Membresía eliminada correctamente.");
+            }
+        });
+    }
+
+    private void actualizarTabla() {
+        membresiasList.setAll(MembresiaDAO.obtenerMembresias());
+    }
+
+    private void mostrarAlerta(String titulo, String mensaje) {
+        Alert alerta = new Alert(Alert.AlertType.INFORMATION);
+        alerta.setTitle(titulo);
+        alerta.setHeaderText(null);
+        alerta.setContentText(mensaje);
+        alerta.showAndWait();
+    }
 }
-
-  
