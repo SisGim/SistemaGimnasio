@@ -41,23 +41,42 @@ public class PagosClienteUI {
         Label lblActual = new Label("Membresía actual: " + cliente.getMembresia());
         lblActual.setStyle("-fx-text-fill: white;");
 
-        Label lblSeleccion = new Label("Selecciona una nueva membresía:");
-        lblSeleccion.setStyle("-fx-text-fill: white;");
+        Label lblVigencia = new Label();
+        lblVigencia.setStyle("-fx-text-fill: #1DB954;");
 
-        List<Membresia> disponibles = MembresiaDAO.obtenerMembresias();
-        cmbMembresias.getItems().addAll(disponibles);
-        cmbMembresias.setPromptText("Selecciona...");
-        cmbMembresias.setStyle("-fx-background-color: white; -fx-border-radius: 5;");
+        List<HistorialMembresia> historial = HistorialMembresiaDAO.obtenerHistorialPorIdCliente(cliente.getId());
 
-        lblVencimiento.setStyle("-fx-text-fill: #1DB954;");
+        boolean tieneActiva = false;
+        LocalDate hoy = LocalDate.now();
 
-        cmbMembresias.setOnAction(e -> calcularFechaVencimiento());
+        if (!historial.isEmpty()) {
+            LocalDate fechaFin = LocalDate.parse(historial.get(0).getFechaFin());
+            if (fechaFin.isAfter(hoy)) {
+                tieneActiva = true;
+                lblVigencia.setText("⏳ Tu membresía vence el: " + fechaFin.format(formatter));
+            }
+        }
 
-        Button btnConfirmar = new Button("✅ Confirmar Compra/Renovación");
-        btnConfirmar.setStyle("-fx-background-color: #1DB954; -fx-text-fill: white;");
-        btnConfirmar.setOnAction(e -> procesarCompra());
+        layout.getChildren().addAll(lblTitulo, lblActual);
 
-        layout.getChildren().addAll(lblTitulo, lblActual, lblSeleccion, cmbMembresias, lblVencimiento, btnConfirmar);
+        if (tieneActiva) {
+            layout.getChildren().add(lblVigencia);  // Solo muestra información
+        } else {
+            Label lblSeleccion = new Label("Selecciona una nueva membresía:");
+            lblSeleccion.setStyle("-fx-text-fill: white;");
+
+            List<Membresia> disponibles = MembresiaDAO.obtenerMembresias();
+            cmbMembresias.getItems().addAll(disponibles);
+            cmbMembresias.setPromptText("Selecciona...");
+            cmbMembresias.setStyle("-fx-background-color: white; -fx-border-radius: 5;");
+            cmbMembresias.setOnAction(e -> calcularFechaVencimiento());
+
+            Button btnConfirmar = new Button("✅ Confirmar Compra/Renovación");
+            btnConfirmar.setStyle("-fx-background-color: #1DB954; -fx-text-fill: white;");
+            btnConfirmar.setOnAction(e -> procesarCompra());
+
+            layout.getChildren().addAll(lblSeleccion, cmbMembresias, lblVencimiento, btnConfirmar);
+        }
 
         return layout;
     }

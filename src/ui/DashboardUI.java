@@ -2,6 +2,8 @@ package ui;
 
 import database.ClienteDAO;
 import database.HistorialMembresiaDAO;
+import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -54,10 +56,9 @@ public class DashboardUI {
                     CustomDialogUtil.mostrarAlertaEstilizada("Debes completar tu perfil antes de usar el sistema.\nHaz clic en el ícono de perfil para actualizar tus datos.");
                     mostrarPerfil();
                 } else {
-                    // ✅ Verificación de membresía próxima a vencer
                     List<HistorialMembresia> historial = HistorialMembresiaDAO.obtenerHistorialPorIdCliente(cliente.getId());
                     if (!historial.isEmpty()) {
-                        HistorialMembresia ultima = historial.get(0); // viene ordenado por fecha_inicio DESC
+                        HistorialMembresia ultima = historial.get(0);
                         LocalDate fechaFin = LocalDate.parse(ultima.getFechaFin());
                         long diasRestantes = ChronoUnit.DAYS.between(LocalDate.now(), fechaFin);
                         if (diasRestantes >= 0 && diasRestantes <= 5) {
@@ -96,7 +97,7 @@ public class DashboardUI {
                     crearBoton("👤 Usuarios", this::mostrarUsuarios),
                     crearBoton("🧾 Clientes", this::mostrarClientes),
                     crearBoton("🏷️ Membresías", this::mostrarMembresias),
-                    crearBoton("🛠️ Máquinas", () -> mostrarSeccion("Módulo de Máquinas")),
+                    crearBoton("🛠️ Máquinas", this::mostrarModuloMaquinas),
                     crearBoton("💳 Pagos", this::mostrarPagos),
                     crearBoton("📊 Reportes", () -> mostrarSeccion("Módulo de Reportes"))
             );
@@ -104,7 +105,7 @@ public class DashboardUI {
 
         if ("Cliente".equalsIgnoreCase(rol)) {
             menu.getChildren().addAll(
-                    crearBoton("🛠️ Máquinas", () -> mostrarSeccion("Módulo de Máquinas")),
+                    crearBoton("🛠️ Máquinas", this::mostrarModuloMaquinas),
                     crearBoton("💳 Membresía", this::mostrarPagoMembresia)
             );
         }
@@ -147,8 +148,8 @@ public class DashboardUI {
         Cliente cliente = ClienteDAO.obtenerClientePorCorreo(correoUsuario);
         return cliente != null && (
                 esPorCompletar(cliente.getNombre()) ||
-                esPorCompletar(cliente.getTelefono()) ||
-                esPorCompletar(cliente.getIdentificacion())
+                        esPorCompletar(cliente.getTelefono()) ||
+                        esPorCompletar(cliente.getIdentificacion())
         );
     }
 
@@ -186,5 +187,55 @@ public class DashboardUI {
 
     private void mostrarPagos() {
         root.setCenter(new PagosUI(rol, correoUsuario).getVista());
+    }
+
+    private void mostrarModuloMaquinas() {
+        if (!"Cliente".equalsIgnoreCase(rol)) {
+            mostrarSeccion("Módulo de Máquinas");
+            return;
+        }
+
+        Cliente cliente = ClienteDAO.obtenerClientePorCorreo(correoUsuario);
+        if (cliente == null) {
+            CustomDialogUtil.mostrarAlertaEstilizada("Error al verificar estado de membresía.");
+            return;
+        }
+
+        List<HistorialMembresia> historial = HistorialMembresiaDAO.obtenerHistorialPorIdCliente(cliente.getId());
+        if (historial.isEmpty()) {
+            CustomDialogUtil.mostrarAlertaEstilizada("No tienes una membresía activa. Renueva tu plan para acceder.");
+            return;
+        }
+
+        LocalDate vencimiento = LocalDate.parse(historial.get(0).getFechaFin());
+        if (vencimiento.isBefore(LocalDate.now())) {
+            CustomDialogUtil.mostrarAlertaEstilizada("Tu membresía ha vencido el " +
+                    vencimiento.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ". Renueva para continuar.");
+            return;
+        }
+
+        TableView<String[]> tabla = new TableView<>();
+
+        TableColumn<String[], String> colMaquina = new TableColumn<>("Máquina");
+        colMaquina.setCellValueFactory(data -> new ReadOnlyStringWrapper(data.getValue()[0]));
+
+        TableColumn<String[], String> colEjercicio = new TableColumn<>("Ejercicio");
+        colEjercicio.setCellValueFactory(data -> new ReadOnlyStringWrapper(data.getValue()[1]));
+
+        tabla.getColumns().addAll(colMaquina, colEjercicio);
+        tabla.getItems().addAll(
+                FXCollections.observableArrayList(
+                        new String[]{"Bicicleta Estática", "Cardio de calentamiento (10 min)"},
+                        new String[]{"Prensa de Piernas", "4x12 Repeticiones"},
+                        new String[]{"Remo", "4x10 Repeticiones"},
+                        new String[]{"Pecho en máquina", "3x15 Repeticiones"},
+                        new String[]{"Máquina de abdominales", "3x20 Repeticiones"}
+                )
+        );
+
+        VBox layout = new VBox(20, new Label("🏋️ Ejercicios Recomendados"), tabla);
+        layout.setPadding(new Insets(30));
+        layout.setAlignment(Pos.CENTER);
+        root.setCenter(layout);
     }
 }
